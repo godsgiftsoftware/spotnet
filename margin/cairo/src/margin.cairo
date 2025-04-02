@@ -102,6 +102,11 @@ pub mod Margin {
                     DataType::SpotEntry(pair_id.try_into().expect('pair id overflows')),
                 )
         }
+
+        fn get_max_asset_multiplier(self: @ContractState, token: ContractAddress) -> u256 {
+            let token_risk_factor: u256 = self.risk_factors.entry(token).read().into();
+            token_risk_factor * 10 / (SCALE_NUMBER - token_risk_factor)
+        }
     }
 
 
