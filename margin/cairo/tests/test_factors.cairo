@@ -1,12 +1,12 @@
 use starknet::ContractAddress;
 use snforge_std::cheatcodes::execution_info::caller_address::{
-    start_cheat_caller_address, stop_cheat_caller_address,
+    start_cheat_caller_address, stop_cheat_caller_address
 };
 use margin::interface::IMarginDispatcherTrait;
 use super::utils::{
     setup_test_suite, deploy_erc20_mock_2, get_risk_factor, 
-    deploy_pragma_mock, store_risk_factor, calculate_health_factor,
-    store_position_data_for_health_factor
+    deploy_pragma_mock, calculate_health_factor,
+    store_data_for_health_factor
 };
 use super::constants::{HYPOTHETICAL_OWNER_ADDR, DEPOSIT_MOCK_USER};
 
@@ -72,9 +72,7 @@ fn test_get_health_factor() {
     let risk_factor: u128 = 500000000000000000000000000;
     let suite = setup_test_suite(owner, deploy_erc20_mock_2(), deploy_pragma_mock());
 
-    // Store risk factor in storage
-    store_position_data_for_health_factor(@suite);
-    store_risk_factor(suite.margin.contract_address, suite.token.contract_address, risk_factor);
+    store_data_for_health_factor(@suite, risk_factor);
 
     // Get health factor
     start_cheat_caller_address(suite.margin.contract_address, owner);
