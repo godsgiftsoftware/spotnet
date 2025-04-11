@@ -60,6 +60,34 @@ pub mod Margin {
         Withdraw: Withdraw,
     }
 
+
+    /// @field ownable: OwnableComponent::Storage
+    /// - Holds ownership information for the contract.
+    /// - Managed using substorage for modular ownership control.
+    
+    /// @field ekubo_core: ICoreDispatcher
+    /// - Acts as the dispatcher for core operations.
+    /// - Facilitates interaction with the core logic of the system.
+    
+    /// @field treasury_balances: Map<(ContractAddress, ContractAddress), TokenAmount>
+    /// - Maps a tuple (depositor address, token address) to the amount of token held.
+    /// - Used to track treasury token balances associated with each depositor and token.
+    
+    /// @field pools: Map<ContractAddress, TokenAmount>
+    /// - Maps pool contract addresses to their corresponding token amounts.
+    /// - Represents liquidity available in different pools.
+    
+    /// @field positions: Map<ContractAddress, Position>
+    /// - Maps contract addresses to their associated positions.
+    /// - Stores details of open positions tied to specific contracts.
+    
+    /// @field oracle_address: ContractAddress
+    /// - Specifies the address of the oracle contract.
+    /// - Used for fetching external data such as market prices.
+    
+    /// @field risk_factors: Map<ContractAddress, u128>
+    /// - Maps token addresses to their risk factor values.
+    /// - Helps in determining risk weights or multipliers for associated tokens.
     #[storage]
     struct Storage {
         #[substorage(v0)]
@@ -192,7 +220,9 @@ pub mod Margin {
             position_parameters: PositionParameters,
             pool_key: PoolKey,
             ekubo_limits: EkuboSlippageLimits,
-        ) {}
+        ) {
+
+        }
         fn close_position(
             ref self: ContractState, pool_key: PoolKey, ekubo_limits: EkuboSlippageLimits,
         ) {}
