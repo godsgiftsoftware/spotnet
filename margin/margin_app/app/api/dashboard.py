@@ -1,3 +1,7 @@
+"""
+This module contains the API routes for dashboard.
+"""
+
 from fastapi import APIRouter, HTTPException, status
 from app.schemas.dashboard import StatisticResponse
 from app.crud.margin_position import margin_position_crud
@@ -23,7 +27,10 @@ async def get_statistic() -> StatisticResponse:
         response = {} 
         response['users'] = await user_crud.get_objects_amounts()
         response['opened_positions'] = await margin_position_crud.get_opened_positions_amount()
-        response['liquidated_positions'] = await margin_position_crud.get_liquidated_positions_amount()
+
+        liquidated_positions = await margin_position_crud.get_liquidated_positions_amount()
+        response['liquidated_positions'] = liquidated_positions
+
         response['opened_orders'] = await order_crud.get_objects_amounts()
     except Exception as e:
         raise HTTPException(

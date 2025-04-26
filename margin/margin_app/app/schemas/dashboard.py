@@ -1,3 +1,7 @@
+"""
+This file contains the Pydantic schema for the statistic.
+"""
+
 from pydantic import BaseModel
 
 
