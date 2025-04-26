@@ -31,7 +31,7 @@ def test_get_statistic_success(
     mock_get_liquidated_positions.return_value = 2
     mock_get_orders.return_value = 15
 
-    response = client.get(f"{DASHBOARD_URL}/get_statistic")
+    response = client.get(f"{DASHBOARD_URL}/statistic")
 
     assert response.status_code == HTTPStatus.OK
     data = response.json()
@@ -62,7 +62,7 @@ def test_get_statistic_internal_server_error(
 
     mock_get_users.side_effect = Exception("Database error")
 
-    response = client.get(f"{DASHBOARD_URL}/get_statistic")
+    response = client.get(f"{DASHBOARD_URL}/statistic")
 
     assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
     assert response.json()["detail"] == "Failed to get statistic."
