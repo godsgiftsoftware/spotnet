@@ -79,6 +79,38 @@ class MarginPositionCRUD(DBConnector):
         except Exception as e:
             # Log the error or handle it as needed
             raise Exception(f"Error retrieving liquidated positions: {str(e)}") from e
+        
+
+    async def get_liquidated_positions_amount(self) -> int:
+        """
+        Getting liquidated positions amount
+
+        Returns:
+            int: amount of liquidated positions
+        """
+        try: 
+            positions = await self.get_objects_amounts(
+                where_clause=MarginPosition.liquidated_at.isnot(None)
+            )
+            return positions
+        except Exception as e:
+            raise Exception(f"Error getting liquidated positions amounts: {str(e)}") from e
+        
+
+    async def get_opened_positions_amount(self) -> int:
+        """
+        Getting opened positions amount
+
+        Returns:
+            int: amount of opened positions
+        """
+        try: 
+            positions = await self.get_objects_amounts(
+                where_clause=MarginPosition.liquidated_at.is_(None)
+            )
+            return positions
+        except Exception as e:
+            raise Exception(f"Error getting liquidated positions amounts: {str(e)}") from e
 
 
 margin_position_crud = MarginPositionCRUD(MarginPosition)
