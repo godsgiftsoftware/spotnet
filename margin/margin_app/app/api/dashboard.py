@@ -23,7 +23,7 @@ async def get_statistic() -> StatisticResponse:
         response = {} 
         response['users'] = await user_crud.get_objects_amounts()
         response['opened_positions'] = await margin_position_crud.get_opened_positions_amount()
-        response['liquidated positions'] = await margin_position_crud.get_all_liquidated_positions()
+        response['liquidated_positions'] = await margin_position_crud.get_liquidated_positions_amount()
         response['opened_orders'] = await order_crud.get_objects_amounts()
     except Exception as e:
         raise HTTPException(

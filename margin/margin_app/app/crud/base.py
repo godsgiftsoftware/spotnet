@@ -173,11 +173,16 @@ class DBConnector:
             result = await session.execute(text("SELECT version()"))
             return f"PostgreSQL version: {result.scalar()}"
 
-    async def get_objects_amounts(self) -> int:
+    async def get_objects_amounts(self, where_clause: Optional[Any] = None) -> int:
         """
         Count total number of objects.
         :return int.
         """
         async with self.session() as db:
-            result = await db.execute(select(func.count()).select_from(self.model))
+            query = select(func.count()).select_from(self.model)
+
+            if where_clause is not None:
+                query = query.where(where_clause)
+
+            result = await db.execute(query)
             return result.scalar()
