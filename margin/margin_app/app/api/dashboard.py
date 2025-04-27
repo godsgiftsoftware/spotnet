@@ -12,26 +12,28 @@ router = APIRouter()
 
 
 @router.get(
-    '/statistic',
-    response_model=StatisticResponse, 
-    status_code=status.HTTP_200_OK
+    "/statistic", response_model=StatisticResponse, status_code=status.HTTP_200_OK
 )
 async def get_statistic() -> StatisticResponse:
     """
-    Getting statistic data about the whole project: 
-    
-    Returns: 
+    Getting statistic data about the whole project:
+
+    Returns:
         StatisticResponse: total amount of users, opened and liquidated positions, opened orders
     """
     try:
-        response = {} 
-        response['users'] = await user_crud.get_objects_amounts()
-        response['opened_positions'] = await margin_position_crud.get_opened_positions_amount()
+        response = {}
+        response["users"] = await user_crud.get_objects_amounts()
+        response["opened_positions"] = (
+            await margin_position_crud.get_opened_positions_amount()
+        )
 
-        liquidated_positions = await margin_position_crud.get_liquidated_positions_amount()
-        response['liquidated_positions'] = liquidated_positions
+        liquidated_positions = (
+            await margin_position_crud.get_liquidated_positions_amount()
+        )
+        response["liquidated_positions"] = liquidated_positions
 
-        response['opened_orders'] = await order_crud.get_objects_amounts()
+        response["opened_orders"] = await order_crud.get_objects_amounts()
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

@@ -8,24 +8,29 @@ from unittest.mock import AsyncMock, patch
 
 DASHBOARD_URL = "api/dashboard"
 
+
 @pytest.mark.asyncio
 @patch("app.api.dashboard.user_crud.get_objects_amounts", new_callable=AsyncMock)
-@patch("app.api.dashboard.margin_position_crud.get_opened_positions_amount", new_callable=AsyncMock)
 @patch(
-    "app.api.dashboard.margin_position_crud.get_liquidated_positions_amount", new_callable=AsyncMock
+    "app.api.dashboard.margin_position_crud.get_opened_positions_amount",
+    new_callable=AsyncMock,
+)
+@patch(
+    "app.api.dashboard.margin_position_crud.get_liquidated_positions_amount",
+    new_callable=AsyncMock,
 )
 @patch("app.api.dashboard.order_crud.get_objects_amounts", new_callable=AsyncMock)
 def test_get_statistic_success(
     mock_get_orders,
     mock_get_liquidated_positions,
-    mock_get_opened_positions, 
-    mock_get_users, 
-    client
+    mock_get_opened_positions,
+    mock_get_users,
+    client,
 ):
     """
     Test successful retrieval of dashboard statistics.
     """
-    
+
     mock_get_users.return_value = 10
     mock_get_opened_positions.return_value = 5
     mock_get_liquidated_positions.return_value = 2
@@ -44,9 +49,13 @@ def test_get_statistic_success(
 
 @pytest.mark.asyncio
 @patch("app.api.dashboard.user_crud.get_objects_amounts", new_callable=AsyncMock)
-@patch("app.api.dashboard.margin_position_crud.get_opened_positions_amount", new_callable=AsyncMock)
 @patch(
-    "app.api.dashboard.margin_position_crud.get_liquidated_positions_amount", new_callable=AsyncMock
+    "app.api.dashboard.margin_position_crud.get_opened_positions_amount",
+    new_callable=AsyncMock,
+)
+@patch(
+    "app.api.dashboard.margin_position_crud.get_liquidated_positions_amount",
+    new_callable=AsyncMock,
 )
 @patch("app.api.dashboard.order_crud.get_objects_amounts", new_callable=AsyncMock)
 def test_get_statistic_internal_server_error(
@@ -54,7 +63,7 @@ def test_get_statistic_internal_server_error(
     mock_get_liquidated_positions,
     mock_get_opened_positions,
     mock_get_users,
-    client
+    client,
 ):
     """
     Test error handling when fetching dashboard statistics fails.
