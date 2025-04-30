@@ -4,7 +4,6 @@ import { fetchPools, setPageIndex, setPageSize } from "../../../store/slices/poo
 import Table from "../../components/Table";
 import Card from "../../components/Card";
 import Badge from "../../components/Badge";
-import Button from "../../components/Button";
 import Pagination from "../../components/Pagination";
 import AdminLayout from "../AdminLayout";
 
@@ -54,20 +53,6 @@ const PoolsPage = () => {
       header: "Amount",
       accessor: "amount",
       cell: (row: any) => (row.amount ? row.amount : "-"),
-    },
-    {
-      header: "24h Changes",
-      accessor: "changes",
-      cell: () => "N/A", // Not implemented yet
-    },
-    {
-      header: "Actions",
-      accessor: "actions",
-      cell: (row: any) => (
-        <Button variant="outline" size="sm">
-          View Details
-        </Button>
-      ),
     },
   ];
 
