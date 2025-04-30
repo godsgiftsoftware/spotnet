@@ -2,6 +2,7 @@
 This module contains the API routes for the pools.
 """
 
+from datetime import timedelta
 from typing import Optional
 from uuid import UUID
 
@@ -14,6 +15,7 @@ from app.schemas.pools import (
     PoolGetAllResponse,
     PoolResponse,
     PoolRiskStatus,
+    PoolStatisticResponse,
     UserPoolCreate,
     UserPoolResponse,
     UserPoolUpdate,
@@ -50,6 +52,43 @@ async def create_pool(token: str, risk_status: PoolRiskStatus) -> PoolResponse:
         ) from e
 
     return created_pool
+
+
+@router.get("/pool_statistic", response_model=list[PoolStatisticResponse])
+async def get_pools_stat(
+    delta: timedelta = Query(
+        default=timedelta(hours=24),
+        description="Duration in ISO 8601 duration format (e.g: P1D = 1 day)",
+    ),
+) -> list[PoolStatisticResponse]:
+    """
+    Get statistic about pools
+
+    :param delta: specifies time duration to get amount delta withint it
+    :return: PoolStatisticResponse
+        where:
+        total_amount: sum of all user pools amount
+        amount_delta_per_day: indicates how amount changed within 24 hours
+    """
+    try:
+        rows = await pool_crud.fetch_all_with_amount_delta(delta)
+        return [
+            PoolStatisticResponse.model_validate(
+                {
+                    "token": row[0].token,
+                    "risk_status": row[0].risk_status,
+                    "total_amount": row[1],
+                    "amount_delta_per_day": row[2],
+                }
+            )
+            for row in rows
+        ]
+    except Exception as e:
+        logger.error(f"Error calculating pools statistic: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Something went wrong.",
+        ) from e
 
 
 @router.get("/pools", response_model=PoolGetAllResponse, status_code=status.HTTP_200_OK)
