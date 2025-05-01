@@ -1,3 +1,5 @@
+"""Public interface for package"""
+
 from .range_interval import RangeInterval, RangeType
 from .views import create_view, DropView, CreateView
 

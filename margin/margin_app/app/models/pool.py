@@ -78,10 +78,12 @@ class UserPool(BaseModel):
         )
 
 
-up = aliased(UserPool)
-
-
 class _PoolStatisticViewQueryBuilder:
+    """
+    Class used to create query for PoolStatisticDBView by decomposing statement
+    into smaller pieces and collecting together in build function
+    """
+
     @classmethod
     def _get_earliest_amount_stmt(cls, for_interval: RangeInterval | None = None):
         return sa.func.first_value(UserPool.amount).over(
@@ -118,6 +120,7 @@ class _PoolStatisticViewQueryBuilder:
 
     @classmethod
     def build(cls):
+        """Public method to build final query"""
         volumes_subq = aliased(
             sa.select(
                 UserPool.pool_id,
@@ -161,6 +164,8 @@ class _PoolStatisticViewQueryBuilder:
 
 
 class PoolStatisticDBView(BaseModel):
+    """Orm model for view. Manually creates underlying Table object as database view"""
+
     __table__ = create_view(
         "pool_statistic_view",
         BaseModel.metadata,

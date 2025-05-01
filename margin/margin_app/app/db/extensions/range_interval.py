@@ -1,3 +1,6 @@
+"""Module provides extra functionallity
+for using INTERVAL in RANGE clause for window function"""
+
 from datetime import timedelta
 from enum import Enum, auto
 
@@ -5,11 +8,23 @@ from sqlalchemy.sql.elements import Over, _IntOrRange as IntOrBaseRange
 
 
 class RangeType(Enum):
+    """
+    Enum with Range types, where:
+    PRECEDING = window frame before current row
+    FOLLOWING = window frame after current row
+    """
+
     PRECEDING = auto()
     FOLLOWING = auto()
 
 
 class RangeInterval(int):
+    """
+    Class which allows specify range as interval in SQL window function
+    The trick is done by overwriting __abs__ function which is called in sqlalchemy internals
+    and result of it is embedded directly in the sql plain query
+    """
+
     def __new__(cls, delta: timedelta, type_: RangeType = RangeType.PRECEDING):
         return super().__new__(
             cls,
@@ -35,6 +50,13 @@ def _interpret_range(
     self,
     range_: tuple[_IntOrRange | None, _IntOrRange | None],
 ) -> tuple[_IntOrRange, _IntOrRange]:
+    """
+    Function used to substitute original one in sqlalchemy Over
+    Provides only standart range args excluding args which are instance
+    of specific RangeInterval class to original sqlalchemy method for further processing.
+    Otherwise if RangeInterval will be provided to original method
+    sqlalchemy will convert it to int which will break range interval functionallity
+    """
     sa_lower, customer_lower = (
         (None, range_[0]) if isinstance(range_[0], RangeInterval) else (range_[0], None)
     )
