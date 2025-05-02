@@ -7,7 +7,7 @@ import os
 import asyncio
 from logging.config import fileConfig
 
-from app.models import BaseModel
+from app.models.base import Base
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -32,7 +32,7 @@ if config.config_file_name is not None:
 # from myapp import mymodel
 # target_metadata = mymodel.BaseModel.metadata
 
-target_metadata = BaseModel.metadata
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
