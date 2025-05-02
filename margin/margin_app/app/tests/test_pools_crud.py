@@ -7,18 +7,26 @@ fixtures to set up and tear down test environments, as well as tests for
 creating, retrieving, updating, and deleting objects in the database.
 """
 
-from datetime import timedelta
+from collections.abc import Sequence
+from datetime import datetime, timedelta
+import random
 import uuid
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
-from app.schemas.pools import PoolGetAllResponse, PoolResponse
+import pytest_asyncio
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.crud.user import UserCRUD
+from app.models.user import User
+from app.tests.conftest import fake
+from app.tests.test_crud_user import user_crud  # noqa
+
+from app.schemas.pools import PoolResponse
 import pytest
-from isort.io import Empty
-import sys, pathlib
 
 from app.crud.pool import PoolCRUD, UserPoolCRUD
-from app.models.pool import Pool, PoolRiskStatus, UserPool
+from app.models.pool import Pool, PoolRiskStatus, PoolStatisticDBView, UserPool
 
 
 @pytest.fixture
@@ -29,6 +37,7 @@ def mock_db_session():
     session.__aenter__.return_value = session
     session.__aexit__.return_value = None
 
+    session.execute = AsyncMock()
     session.add = AsyncMock()
     session.commit = AsyncMock()
     session.refresh = AsyncMock()
@@ -236,10 +245,85 @@ async def test_fetch_all_with_amount_delta(pool_crud, mock_db_session):
         ),
     ]
     mock_res_all = Mock(return_value=expected_res)
-    mock_execute = AsyncMock()
-    mock_execute.return_value.all = mock_res_all
-    mock_db_session.execute = mock_execute
+    mock_db_session.execute.return_value.all = mock_res_all
     res = await pool_crud.fetch_all_with_amount_delta(timedelta(hours=5))
     assert res == expected_res
     mock_res_all.assert_called_once()
-    mock_execute.assert_awaited_once()
+    mock_db_session.execute.assert_awaited_once()
+
+
+@pytest_asyncio.fixture
+async def test_user(user_crud: UserCRUD):
+    user = await user_crud.write_to_db(User(wallet_id=str(uuid.uuid4())))
+    yield user
+    await user_crud.delete_object(user)
+
+
+@pytest_asyncio.fixture
+async def new_mock_pools_with_session(pool_crud: PoolCRUD, test_user: User):
+    mock_pools = [
+        Pool(
+            token=fake.cryptocurrency_code(),
+            risk_status=random.choice(list(PoolRiskStatus)),
+            user_pools=sorted(
+                [
+                    UserPool(
+                        user_id=test_user.id,
+                        amount=Decimal(fake.random_int(1000, 10000)),
+                        created_at=datetime.now()
+                        - timedelta(
+                            hours=random.choice(
+                                [0, 23, 47, 71, random.randint(72, 1000)]
+                            )
+                        ),
+                    )
+                    for _ in range(10)
+                ],
+                key=lambda p: p.created_at,
+                reverse=True,
+            ),
+        )
+        for _ in range(10)
+    ]
+    async with pool_crud.session_maker() as session:
+        session.add_all(mock_pools)
+        await session.flush()
+        yield mock_pools, session
+        await session.rollback()
+
+
+def _find_earliest_amount(user_pools: Sequence[UserPool], within_delta_hours: int):
+    earliest_up = user_pools[0]
+    for up in user_pools[1:]:
+        if (
+            up.created_at >= datetime.now() - timedelta(hours=within_delta_hours)
+        ) and up.created_at < earliest_up.created_at:
+            earliest_up = up
+    return earliest_up.amount
+
+
+@pytest.mark.asyncio
+async def test_pool_statistic_view(
+    new_mock_pools_with_session: tuple[Sequence[Pool], AsyncSession],
+):
+    mock_pools, session = new_mock_pools_with_session
+    res = await session.execute(select(PoolStatisticDBView))
+    retrieved_pools: Sequence[PoolStatisticDBView] = res.scalars().all()
+    pools_by_id = {pool.id: pool for pool in mock_pools}
+    for pool in retrieved_pools:
+        expected_pool = pools_by_id[pool.id]
+        assert pool.token == expected_pool.token
+        latest_amount = expected_pool.user_pools[0].amount
+        assert latest_amount - expected_pool.user_pools[-1].amount == pool.volume
+        assert (
+            latest_amount - _find_earliest_amount(expected_pool.user_pools, 24)
+            == pool.volume_24
+        )
+        assert (
+            latest_amount - _find_earliest_amount(expected_pool.user_pools, 48)
+            == pool.volume_48
+        )
+        assert (
+            latest_amount - _find_earliest_amount(expected_pool.user_pools, 72)
+            == pool.volume_72
+        )
