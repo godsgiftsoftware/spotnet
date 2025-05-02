@@ -1,4 +1,4 @@
-"""Module provides functionallity for managing database views in sqlalchemy"""
+"""Module provides functionality for managing database views in sqlalchemy"""
 
 import sqlalchemy as sa
 from sqlalchemy.ext import compiler

@@ -15,7 +15,7 @@ from sqlalchemy.orm import Mapped, aliased, mapped_column, relationship
 from app.db.extensions import RangeInterval
 from app.db.extensions import create_view
 
-from .base import BaseModel
+from .base import Base, BaseModel
 
 
 class PoolRiskStatus(Enum):
@@ -124,7 +124,6 @@ class _PoolStatisticViewQueryBuilder:
         volumes_subq = aliased(
             sa.select(
                 UserPool.pool_id,
-                UserPool.amount,
                 cls._get_amount_delta_stmt("volume"),
                 cls._get_amount_delta_stmt("volume_24", 24),
                 cls._get_amount_delta_stmt("volume_48", 48),
@@ -134,17 +133,10 @@ class _PoolStatisticViewQueryBuilder:
             .order_by(UserPool.pool_id, UserPool.created_at.desc())
             .subquery()
         )
-        total_amount_subq = aliased(
-            sa.select(UserPool.pool_id, sa.func.sum(UserPool.amount))
-            .group_by(UserPool.pool_id)
-            .subquery()
-        )
         return (
             sa.select(
-                Pool,
-                sa.func.coalesce(sa.func.sum(volumes_subq.c.amount), 0).label(
-                    "total_amount"
-                ),
+                Pool.id,
+                Pool.token,
                 volumes_subq.c.volume,
                 volumes_subq.c.volume_24,
                 volumes_subq.c.volume_48,
@@ -152,22 +144,14 @@ class _PoolStatisticViewQueryBuilder:
             )
             .select_from(Pool)
             .outerjoin(volumes_subq, volumes_subq.c.pool_id == Pool.id)
-            .outerjoin(total_amount_subq, total_amount_subq.c.pool_id == Pool.id)
-            .group_by(
-                Pool.id,
-                volumes_subq.c.volume,
-                volumes_subq.c.volume_24,
-                volumes_subq.c.volume_48,
-                volumes_subq.c.volume_72,
-            )
         )
 
 
-class PoolStatisticDBView(BaseModel):
+class PoolStatisticDBView(Base):
     """Orm model for view. Manually creates underlying Table object as database view"""
 
     __table__ = create_view(
         "pool_statistic_view",
-        BaseModel.metadata,
+        Base.metadata,
         _PoolStatisticViewQueryBuilder.build(),
     )
