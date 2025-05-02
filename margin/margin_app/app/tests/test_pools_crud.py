@@ -254,6 +254,10 @@ async def test_fetch_all_with_amount_delta(pool_crud, mock_db_session):
 
 @pytest_asyncio.fixture
 async def test_user(user_crud: UserCRUD):
+    """
+    Fixture to create test user using user_crud as another fixture
+    Deletes created user on test teardown
+    """
     user = await user_crud.write_to_db(User(wallet_id=str(uuid.uuid4())))
     yield user
     await user_crud.delete_object(user)
@@ -261,6 +265,10 @@ async def test_user(user_crud: UserCRUD):
 
 @pytest_asyncio.fixture
 async def new_mock_pools_with_session(pool_crud: PoolCRUD, test_user: User):
+    """
+    Fixture to create a set of test pools with associated user pools
+    Rollbacks session after on teardown to clear changes
+    """
     mock_pools = [
         Pool(
             token=fake.cryptocurrency_code(),
@@ -293,6 +301,10 @@ async def new_mock_pools_with_session(pool_crud: PoolCRUD, test_user: User):
 
 
 def _find_earliest_amount(user_pools: Sequence[UserPool], within_delta_hours: int):
+    """
+    Finds earliest user pool's amount within supplied amount of hours.
+    Assumes that user_pools are sorted by created_at in desc order
+    """
     earliest_up = user_pools[0]
     for up in user_pools[1:]:
         if (
@@ -306,6 +318,7 @@ def _find_earliest_amount(user_pools: Sequence[UserPool], within_delta_hours: in
 async def test_pool_statistic_view(
     new_mock_pools_with_session: tuple[Sequence[Pool], AsyncSession],
 ):
+    """Test fetching all from PoolStatisticDBView"""
     mock_pools, session = new_mock_pools_with_session
     res = await session.execute(select(PoolStatisticDBView))
     retrieved_pools: Sequence[PoolStatisticDBView] = res.scalars().all()
