@@ -5,6 +5,7 @@ export interface Pool {
   token: string;
   risk_status: string;
   amount?: string | null;
+  changes_24h?: string | null;
 }
 
 export interface PoolListResponse {

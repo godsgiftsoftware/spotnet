@@ -54,6 +54,11 @@ const PoolsPage = () => {
       accessor: "amount",
       cell: (row: any) => (row.amount ? row.amount : "-"),
     },
+    {
+      header: "24h Changes",
+      accessor: "changes_24h",
+      cell: (row: any) => (row.changes_24h ? row.changes_24h : "N/A"),
+    },
   ];
 
   return (
