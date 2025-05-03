@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     db_name: str = Field(default="postgres", alias="POSTGRES_DB")
     db_user: str = Field(default="postgres", alias="POSTGRES_USER")
     db_password: str = Field(default="admin", alias="POSTGRES_PASSWORD")
-    db_host: str = "localhost"
+    db_host: str = "db"
     db_port: int = 5432
 
     # Email settings

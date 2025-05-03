@@ -3,10 +3,15 @@
 from fastapi.testclient import TestClient
 import pytest_asyncio
 import pytest
+from sqlalchemy.ext.asyncio import create_async_engine
 from app.crud.base import DBConnector
+from app.core.config import settings
 from app.models.base import BaseModel
 from app.main import app
 import os
+import faker
+
+fake = faker.Faker()
 
 
 def set_test_env_vars():
@@ -23,17 +28,17 @@ def pytest_configure():
     set_test_env_vars()
 
 
-@pytest_asyncio.fixture
-async def db_connector():
-    """Fixture to create a database connection for testing."""
-    db = DBConnector()
-    async with db.engine.begin() as conn:
-        await conn.run_sync(BaseModel.metadata.create_all)
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def setup_db():
+    """Fixture to create and teardown database migrations"""
+    engine = create_async_engine(settings.db_url)
+    async with engine.begin() as conn:
+        res = await conn.run_sync(BaseModel.metadata.create_all)
     try:
-        yield db
+        yield
     finally:
-        async with db.engine.begin() as conn:
-            await conn.run_sync(BaseModel.metadata.drop_all)
+        async with engine.begin() as conn:
+            res = await conn.run_sync(BaseModel.metadata.drop_all)
 
 
 @pytest.fixture(scope="module")

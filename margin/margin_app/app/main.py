@@ -18,6 +18,7 @@ from app.api.order import router as order_router
 from app.api.pools import router as pool_router
 from app.api.user import router as user_router
 from app.api.auth import router as auth_router
+from app.api.dashboard import router as dashboard_router
 from app.services.auth.base import get_current_user
 from app.models.admin import Admin
 
@@ -52,6 +53,7 @@ app.include_router(deposit_router, prefix="/api/deposit", tags=["Deposit"])
 app.include_router(order_router, prefix="/api/order", tags=["Order"])
 app.include_router(admin_router, prefix="/api/admin", tags=["Admin"])
 app.include_router(auth_router, prefix="/api/auth", tags=["Auth"])
+app.include_router(dashboard_router, prefix="/api/dashboard", tags=["Dashboard"])
 
 # Configure Loguru
 logger.remove()  # Remove default logger to configure custom settings
