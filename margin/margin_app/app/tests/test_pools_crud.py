@@ -8,14 +8,14 @@ creating, retrieving, updating, and deleting objects in the database.
 """
 
 from collections.abc import Sequence
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 import random
 import uuid
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest_asyncio
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.crud.user import UserCRUD
 from app.models.user import User
@@ -253,7 +253,7 @@ async def test_fetch_all_with_amount_delta(pool_crud, mock_db_session):
 
 
 @pytest_asyncio.fixture
-async def test_user(user_crud: UserCRUD):
+async def new_test_user(user_crud: UserCRUD):
     """
     Fixture to create test user using user_crud as another fixture
     Deletes created user on test teardown
@@ -264,7 +264,7 @@ async def test_user(user_crud: UserCRUD):
 
 
 @pytest_asyncio.fixture
-async def new_mock_pools_with_session(pool_crud: PoolCRUD, test_user: User):
+async def new_mock_pools_with_session(pool_crud: PoolCRUD, new_test_user: User):
     """
     Fixture to create a set of test pools with associated user pools
     Rollbacks session after on teardown to clear changes
@@ -276,9 +276,9 @@ async def new_mock_pools_with_session(pool_crud: PoolCRUD, test_user: User):
             user_pools=sorted(
                 [
                     UserPool(
-                        user_id=test_user.id,
+                        user_id=new_test_user.id,
                         amount=Decimal(fake.random_int(1000, 10000)),
-                        created_at=datetime.now()
+                        created_at=datetime.now(UTC).replace(tzinfo=None)
                         - timedelta(
                             hours=random.choice(
                                 [0, 23, 47, 71, random.randint(72, 1000)]
@@ -294,6 +294,8 @@ async def new_mock_pools_with_session(pool_crud: PoolCRUD, test_user: User):
         for _ in range(10)
     ]
     async with pool_crud.session_maker() as session:
+        await session.execute(delete(UserPool))
+        await session.execute(delete(Pool))
         session.add_all(mock_pools)
         await session.flush()
         yield mock_pools, session
@@ -305,13 +307,14 @@ def _find_earliest_amount(user_pools: Sequence[UserPool], within_delta_hours: in
     Finds earliest user pool's amount within supplied amount of hours.
     Assumes that user_pools are sorted by created_at in desc order
     """
-    earliest_up = user_pools[0]
+    earliest_up = None
     for up in user_pools[1:]:
         if (
-            up.created_at >= datetime.now() - timedelta(hours=within_delta_hours)
-        ) and up.created_at < earliest_up.created_at:
+            up.created_at.replace(tzinfo=UTC)
+            >= datetime.now(UTC) - timedelta(hours=within_delta_hours)
+        ) and (earliest_up is None or up.created_at < earliest_up.created_at):
             earliest_up = up
-    return earliest_up.amount
+    return earliest_up.amount if earliest_up else None
 
 
 @pytest.mark.asyncio
@@ -328,15 +331,12 @@ async def test_pool_statistic_view(
         assert pool.token == expected_pool.token
         latest_amount = expected_pool.user_pools[0].amount
         assert latest_amount - expected_pool.user_pools[-1].amount == pool.volume
-        assert (
-            latest_amount - _find_earliest_amount(expected_pool.user_pools, 24)
-            == pool.volume_24
-        )
-        assert (
-            latest_amount - _find_earliest_amount(expected_pool.user_pools, 48)
-            == pool.volume_48
-        )
-        assert (
-            latest_amount - _find_earliest_amount(expected_pool.user_pools, 72)
-            == pool.volume_72
-        )
+        amount_24, amount_48, amount_72 = [
+            _find_earliest_amount(expected_pool.user_pools, n) for n in [24, 48, 72]
+        ]
+        for i, amount_x in enumerate([amount_24, amount_48, amount_72], 1):
+            volume_x = getattr(pool, f"volume_{i*24}")
+            if amount_x is None:
+                assert volume_x == 0
+            else:
+                assert latest_amount - amount_x == volume_x

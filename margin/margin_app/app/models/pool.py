@@ -2,7 +2,7 @@
 This module contains the Pool and UserPool models.
 """
 
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 import uuid
 from decimal import Decimal
 from enum import Enum
@@ -93,29 +93,22 @@ class _PoolStatisticViewQueryBuilder:
         )
 
     @classmethod
-    def _get_amount_delta_stmt(
-        cls, label: str | None = None, within_hours: int | None = None
-    ):
+    def _get_first_amount_stmt(cls, *, within_hours: int):
         stmt = sa.func.coalesce(
-            sa.func.first_value(UserPool.amount)
-            .over(partition_by=UserPool.pool_id, order_by=UserPool.created_at.desc())
-            .label("latest_amount")
-            - sa.func.first_value(UserPool.amount)
-            .over(
-                partition_by=UserPool.pool_id,
-                order_by=UserPool.created_at.asc(),
-                range_=(
-                    RangeInterval(timedelta(hours=within_hours))
-                    if within_hours
-                    else None,
-                    None,
-                ),
-            )
-            .label("earliest_amount"),
+            sa.Grouping(
+                sa.func.array_agg(UserPool.amount)
+                .filter(
+                    UserPool.created_at
+                    >= datetime.now(UTC) - timedelta(hours=within_hours)
+                )
+                .over(
+                    partition_by=UserPool.pool_id,
+                    order_by=UserPool.created_at,
+                    range_=(None, None),
+                )
+            )[1],  # in postgres array indices start from 1
             0,
         )
-        if label:
-            stmt = stmt.label(label)
         return stmt
 
     @classmethod
@@ -124,26 +117,46 @@ class _PoolStatisticViewQueryBuilder:
         volumes_subq = aliased(
             sa.select(
                 UserPool.pool_id,
-                cls._get_amount_delta_stmt("volume"),
-                cls._get_amount_delta_stmt("volume_24", 24),
-                cls._get_amount_delta_stmt("volume_48", 48),
-                cls._get_amount_delta_stmt("volume_72", 72),
-            )
-            .distinct(UserPool.pool_id)
-            .order_by(UserPool.pool_id, UserPool.created_at.desc())
-            .subquery()
+                UserPool.created_at,
+                UserPool.amount,
+                sa.func.first_value(UserPool.amount)
+                .over(
+                    partition_by=UserPool.pool_id,
+                    order_by=UserPool.created_at.desc(),
+                )
+                .label("latest_amount"),
+                sa.func.first_value(UserPool.amount)
+                .over(
+                    partition_by=UserPool.pool_id,
+                    order_by=UserPool.created_at.asc(),
+                )
+                .label("oldest_amount"),
+                cls._get_first_amount_stmt(within_hours=24).label("amount_24"),
+                cls._get_first_amount_stmt(within_hours=48).label("amount_48"),
+                cls._get_first_amount_stmt(within_hours=72).label("amount_72"),
+            ).subquery()
         )
         return (
             sa.select(
                 Pool.id,
                 Pool.token,
-                volumes_subq.c.volume,
-                volumes_subq.c.volume_24,
-                volumes_subq.c.volume_48,
-                volumes_subq.c.volume_72,
+                (volumes_subq.c.latest_amount - volumes_subq.c.oldest_amount).label(
+                    "volume"
+                ),
+                (volumes_subq.c.latest_amount - volumes_subq.c.amount_24).label(
+                    "volume_24"
+                ),
+                (volumes_subq.c.latest_amount - volumes_subq.c.amount_48).label(
+                    "volume_48"
+                ),
+                (volumes_subq.c.latest_amount - volumes_subq.c.amount_72).label(
+                    "volume_72"
+                ),
             )
+            .distinct(volumes_subq.c.pool_id)
             .select_from(Pool)
             .outerjoin(volumes_subq, volumes_subq.c.pool_id == Pool.id)
+            .order_by(volumes_subq.c.pool_id, volumes_subq.c.created_at.desc())
         )
 
 
