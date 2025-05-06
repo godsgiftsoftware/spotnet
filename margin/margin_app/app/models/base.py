@@ -12,9 +12,13 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 
 @as_declarative()
-class BaseModel:
+class Base:
+    """Base model for all database tables"""
+
+
+class BaseModel(Base):
     """
-    Base model for all database tables. Includes common fields such as
+    Abstract model which includes common fields such as
     id, created_at, and updated_at.
     """
 
@@ -31,3 +35,4 @@ class BaseModel:
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
+

@@ -76,7 +76,7 @@ async def test_get_totals_for_date(
         Returns timedelta with maximum amount of hours required
         to avoid exceeding current date
         """
-        return timedelta(hours=fake.random_int(0, 23 - datetime.now().hour))
+        return timedelta(hours=fake.random_int(0, datetime.now().hour))
 
     async with liquidation_crud.session() as session:
         await session.execute(delete(Liquidation))
@@ -115,8 +115,11 @@ async def test_get_totals_for_date(
         # find row with corresponding token and compare amounts sum
         for token, total_amount in rows:
             if token == expected_token:
-                print("MATCHING", token)
                 assert total_amount == sum(
                     [liquidation.bonus_amount for liquidation in group], Decimal(0)
                 )
                 break
+        else:
+            raise Exception(
+                f"Matched token for {expected_token} wasn't found in retrieved rows"
+            )
