@@ -16,6 +16,8 @@ pub fn byte_array_to_felt252(byte_array: ByteArray) -> felt252 {
     };
     result.try_into().unwrap()
 }
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
