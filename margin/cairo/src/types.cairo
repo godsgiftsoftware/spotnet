@@ -9,7 +9,7 @@ pub struct PositionParameters {
     pub initial_token: ContractAddress,
     pub debt_token: ContractAddress,
     pub amount: TokenAmount,
-    pub multiplier: u64
+    pub multiplier: u64,
 }
 
 #[derive(Serde, starknet::Store, Drop)]

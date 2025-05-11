@@ -16,7 +16,6 @@ pub fn byte_array_to_felt252(byte_array: ByteArray) -> felt252 {
     };
     result.try_into().unwrap()
 }
-
 mod tests {
     use super::*;
 
@@ -24,14 +23,14 @@ mod tests {
     fn test_byte_array_to_felt252() {
         let byte_array: ByteArray = "ETH";
         let result = byte_array_to_felt252(byte_array);
-        assert_eq!(result, 'ETH');
+        assert(result == 'ETH', 'Wrong equals');
 
         let byte_array: ByteArray = "STRK";
         let result = byte_array_to_felt252(byte_array);
-        assert_eq!(result, 'STRK');
+        assert(result == 'STRK', 'Wrong equals');
 
         let byte_array: ByteArray = "ETH/STRK";
         let result = byte_array_to_felt252(byte_array);
-        assert_eq!(result, 'ETH/STRK');
+        assert(result == 'ETH/STRK', 'Wrong equals');
     }
 }
