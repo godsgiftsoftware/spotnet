@@ -206,3 +206,4 @@ async def login_user(data: UserLogin, response: Response):
     )
 
     return {"access_token": access_token, "token_type": "bearer"}
+    
