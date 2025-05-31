@@ -1,5 +1,6 @@
 import Assets from './assets';
 import AdminLayout from '../AdminLayout';
+import DashboardStats from './DashboardStats';
 
 const AdminDashboard: React.FC = () => {
   const mockAssetsData = {
@@ -11,6 +12,7 @@ const AdminDashboard: React.FC = () => {
   return (
     <AdminLayout>
       <div className='text-white'>
+        <DashboardStats />
         <Assets className='w-full max-w-[900px]' data={mockAssetsData} />
       </div>
     </AdminLayout>
