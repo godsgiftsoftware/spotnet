@@ -244,7 +244,10 @@ async def test_get_user_pool_success():
         created_at="2024-01-01T00:00:00Z",
     )
 
-    with patch("app.api.pools.user_pool_crud.get_user_pool_by_id", new=AsyncMock(return_value=mock_user_pool)):
+    with patch(
+        "app.api.pools.user_pool_crud.get_user_pool_by_id", 
+        new=AsyncMock(return_value=mock_user_pool)
+    ):
         from fastapi.testclient import TestClient
         client = TestClient(app)
         resp = client.get(f"/api/pool/user_pool/{user_pool_id}")
@@ -257,7 +260,10 @@ async def test_get_user_pool_success():
 async def test_get_user_pool_not_found():
     """Test getting a non-existent user pool."""
     user_pool_id = uuid.uuid4()
-    with patch("app.api.pools.user_pool_crud.get_user_pool_by_id", new=AsyncMock(return_value=None)):
+    with patch(
+        "app.api.pools.user_pool_crud.get_user_pool_by_id", 
+        new=AsyncMock(return_value=None)
+    ):
         from fastapi.testclient import TestClient
         client = TestClient(app)
         resp = client.get(f"/api/pool/user_pool/{user_pool_id}")
