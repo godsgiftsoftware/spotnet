@@ -248,7 +248,7 @@ async def get_user_pool(user_pool_id: UUID) -> UserPoolResponse:
     :raises: HTTPException with 404 if user pool not found
     """
     try:
-        user_pool = await user_pool_crud.get_user_pool_by_id(user_pool_id)
+        user_pool = await user_pool_crud.get_object(user_pool_id)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

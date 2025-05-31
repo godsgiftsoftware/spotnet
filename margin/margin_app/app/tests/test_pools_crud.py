@@ -12,7 +12,7 @@ from datetime import UTC, datetime, timedelta
 import random
 import uuid
 from decimal import Decimal
-from httpx import AsyncClient
+from fastapi.testclient import TestClient
 from fastapi import status
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
@@ -245,10 +245,9 @@ async def test_get_user_pool_success():
     )
 
     with patch(
-        "app.api.pools.user_pool_crud.get_user_pool_by_id", 
+        "app.api.pools.user_pool_crud.get_object", 
         new=AsyncMock(return_value=mock_user_pool)
     ):
-        from fastapi.testclient import TestClient
         client = TestClient(app)
         resp = client.get(f"/api/pool/user_pool/{user_pool_id}")
         
@@ -261,10 +260,9 @@ async def test_get_user_pool_not_found():
     """Test getting a non-existent user pool."""
     user_pool_id = uuid.uuid4()
     with patch(
-        "app.api.pools.user_pool_crud.get_user_pool_by_id", 
+        "app.api.pools.user_pool_crud.get_object", 
         new=AsyncMock(return_value=None)
     ):
-        from fastapi.testclient import TestClient
         client = TestClient(app)
         resp = client.get(f"/api/pool/user_pool/{user_pool_id}")
         
@@ -275,7 +273,6 @@ async def test_get_user_pool_not_found():
 async def test_get_user_pool_invalid_uuid():
     """Test getting a user pool with invalid UUID."""
     invalid_uuid = "not-a-uuid"
-    from fastapi.testclient import TestClient
     client = TestClient(app)
     resp = client.get(f"/api/pool/user_pool/{invalid_uuid}")
     
@@ -285,9 +282,10 @@ async def test_get_user_pool_invalid_uuid():
 async def test_get_user_pool_internal_error():
     """Test handling internal error when getting a user pool."""
     user_pool_id = uuid.uuid4()
-    with patch("app.api.pools.user_pool_crud.get_user_pool_by_id", 
-               new=AsyncMock(side_effect=Exception("DB error"))):
-        from fastapi.testclient import TestClient
+    with patch(
+        "app.api.pools.user_pool_crud.get_object", 
+        new=AsyncMock(side_effect=Exception("DB error"))
+    ):
         client = TestClient(app)
         resp = client.get(f"/api/pool/user_pool/{user_pool_id}")
         
