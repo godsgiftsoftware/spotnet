@@ -234,46 +234,59 @@ async def test_update_user_pool_not_found(user_pool_crud, mock_db_session):
 
 @pytest.mark.asyncio
 async def test_get_user_pool_success():
+    """Test successfully getting a user pool by ID."""
     user_pool_id = uuid.uuid4()
     mock_user_pool = UserPoolResponse(
-        user_pool_id=user_pool_id,
+        id=user_pool_id,
         user_id=uuid.uuid4(),
         pool_id=uuid.uuid4(),
-        amount=1000,
+        amount=Decimal("1000"),
         created_at="2024-01-01T00:00:00Z",
     )
 
     with patch("app.api.pools.user_pool_crud.get_user_pool_by_id", new=AsyncMock(return_value=mock_user_pool)):
-        async with AsyncClient(app=app, base_url="http://test") as ac:
-            resp = await ac.get(f"/user_pool/{user_pool_id}")
+        from fastapi.testclient import TestClient
+        client = TestClient(app)
+        resp = client.get(f"/api/pool/user_pool/{user_pool_id}")
+        
         assert resp.status_code == status.HTTP_200_OK
         data = resp.json()
-        assert data["user_pool_id"] == str(user_pool_id)
+        assert data["id"] == str(user_pool_id)
 
 @pytest.mark.asyncio
 async def test_get_user_pool_not_found():
+    """Test getting a non-existent user pool."""
     user_pool_id = uuid.uuid4()
     with patch("app.api.pools.user_pool_crud.get_user_pool_by_id", new=AsyncMock(return_value=None)):
-        async with AsyncClient(app=app, base_url="http://test") as ac:
-            resp = await ac.get(f"/user_pool/{user_pool_id}")
+        from fastapi.testclient import TestClient
+        client = TestClient(app)
+        resp = client.get(f"/api/pool/user_pool/{user_pool_id}")
+        
         assert resp.status_code == status.HTTP_404_NOT_FOUND
         assert "not found" in resp.json()["detail"]
 
 @pytest.mark.asyncio
 async def test_get_user_pool_invalid_uuid():
+    """Test getting a user pool with invalid UUID."""
     invalid_uuid = "not-a-uuid"
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        resp = await ac.get(f"/user_pool/{invalid_uuid}")
+    from fastapi.testclient import TestClient
+    client = TestClient(app)
+    resp = client.get(f"/api/pool/user_pool/{invalid_uuid}")
+    
     assert resp.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 @pytest.mark.asyncio
 async def test_get_user_pool_internal_error():
+    """Test handling internal error when getting a user pool."""
     user_pool_id = uuid.uuid4()
-    with patch("app.api.pools.user_pool_crud.get_user_pool_by_id", new=AsyncMock(side_effect=Exception("DB error"))):
-        async with AsyncClient(app=app, base_url="http://test") as ac:
-            resp = await ac.get(f"/user_pool/{user_pool_id}")
+    with patch("app.api.pools.user_pool_crud.get_user_pool_by_id", 
+               new=AsyncMock(side_effect=Exception("DB error"))):
+        from fastapi.testclient import TestClient
+        client = TestClient(app)
+        resp = client.get(f"/api/pool/user_pool/{user_pool_id}")
+        
         assert resp.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-        assert "Something went wrong" in resp.json()["detail"]    
+        assert "Something went wrong" in resp.json()["detail"]
 
 
 @pytest.mark.asyncio
