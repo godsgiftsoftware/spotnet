@@ -12,3 +12,13 @@ class Token(BaseModel):
 
     access_token: str
     token_type: str
+
+
+class SignupConfirmation(BaseModel):
+    """
+    Signup confirmation request model
+    """
+    
+    token: str
+    password: str
+    name: str
