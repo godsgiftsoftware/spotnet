@@ -153,7 +153,7 @@ class UserPoolCRUD(DBConnector):
 
             await db.commit()
             await db.refresh(user_pool)
-            return user_pool
+            return user_pool    
 
 
 pool_crud = PoolCRUD(Pool)
