@@ -181,13 +181,16 @@ def test_update_margin_position_invalid_multiplier(client, mock_update_margin_po
     """Test updating a margin position with invalid multiplier."""
     position_id = uuid.uuid4()
     invalid_update_data = {"multiplier": 25}  # Invalid multiplier > 20
-    mock_update_margin_position.side_effect = ValueError("Multiplier must be between 1 and 20")
 
     response = client.post(f"{MARGIN_POSITION_URL}/{position_id}", json=invalid_update_data)
     
-    assert response.status_code == 400
-    assert "Multiplier must be between 1 and 20" in response.json()["detail"]
-    mock_update_margin_position.assert_called_once()
+    # Should be handled by Pydantic validation at the schema level
+    assert response.status_code == 422
+    # Check that the error message mentions multiplier validation
+    response_data = response.json()
+    assert "multiplier" in str(response_data)
+    # The mock should not be called because validation fails before reaching the endpoint
+    mock_update_margin_position.assert_not_called()
 
 
 def test_update_margin_position_invalid_uuid(client, valid_update_data):

@@ -81,7 +81,7 @@ class TestLiquidation:
 
         request_data = {
             "margin_position_id": str(self.test_margin_position_id),
-            "bonus_amount": str(self.test_bonus_amount),
+            "bonus_amount": float(self.test_bonus_amount),
             "bonus_token": self.test_bonus_token,
         }
         response = client.post(MARGIN_POSITION_URL + "/liquidate", json=request_data)
@@ -121,7 +121,7 @@ class TestLiquidation:
 
         request_data = {
             "margin_position_id": str(self.test_margin_position_id),
-            "bonus_amount": str(self.test_bonus_amount),
+            "bonus_amount": float(self.test_bonus_amount),
             "bonus_token": self.test_bonus_token,
         }
 
