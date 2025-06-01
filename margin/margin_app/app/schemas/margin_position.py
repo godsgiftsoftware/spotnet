@@ -56,8 +56,12 @@ class MarginPositionUpdate(BaseSchema):
     Only borrowed_amount and multiplier can be updated.
     """
 
-    borrowed_amount: Optional[Decimal] = Field(None, gt=0, description="Borrowed amount must be positive")
-    multiplier: Optional[int] = Field(None, ge=1, le=20, description="Multiplier must be between 1 and 20")
+    borrowed_amount: Optional[Decimal] = Field(
+        None, gt=0, description="Borrowed amount must be positive"
+    )
+    multiplier: Optional[int] = Field(
+        None, ge=1, le=20, description="Multiplier must be between 1 and 20"
+    )
 
 
 class MarginPositionResponse(BaseSchema):

@@ -74,7 +74,8 @@ async def update_margin_position(
 
     Raises:
         HTTPException: 404 error if the position is not found
-        HTTPException: 400 error if the position cannot be updated (e.g., closed position, invalid data)
+        HTTPException: 400 error if the position cannot be updated 
+                       (e.g., closed position, invalid data)
     """
     try:
         updated_position = await margin_position_crud.update_margin_position(
