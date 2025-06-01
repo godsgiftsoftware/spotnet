@@ -6,10 +6,10 @@ from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from uuid import UUID
-from pydantic import ConfigDict
+from pydantic import ConfigDict, Field
 from typing import Optional
 
-from pydantic import BaseModel
+from .base import BaseSchema
 from .base import GetAll
 
 
@@ -26,7 +26,7 @@ class MarginPositionStatus(str, Enum):
     CLOSED = "Closed"
 
 
-class CloseMarginPositionResponse(BaseModel):
+class CloseMarginPositionResponse(BaseSchema):
     """
     Response model for closing a margin position.
 
@@ -38,13 +38,8 @@ class CloseMarginPositionResponse(BaseModel):
     position_id: UUID
     status: MarginPositionStatus
 
-    class Config:
-        """Pydantic configuration class"""
 
-        from_attributes = True
-
-
-class MarginPositionCreate(BaseModel):
+class MarginPositionCreate(BaseSchema):
     """
     Pydantic model for creating a MarginPosition.
     """
@@ -55,22 +50,17 @@ class MarginPositionCreate(BaseModel):
     transaction_id: str
 
 
-class MarginPositionUpdate(BaseModel):
+class MarginPositionUpdate(BaseSchema):
     """
     Pydantic model for updating a MarginPosition.
     Only borrowed_amount and multiplier can be updated.
     """
 
-    borrowed_amount: Optional[Decimal] = None
-    multiplier: Optional[int] = None
-
-    class Config:
-        """Pydantic configuration class"""
-
-        from_attributes = True
+    borrowed_amount: Optional[Decimal] = Field(None, gt=0, description="Borrowed amount must be positive")
+    multiplier: Optional[int] = Field(None, ge=1, le=20, description="Multiplier must be between 1 and 20")
 
 
-class MarginPositionResponse(BaseModel):
+class MarginPositionResponse(BaseSchema):
     """
     Pydantic model for a MarginPosition response.
     """
@@ -82,13 +72,6 @@ class MarginPositionResponse(BaseModel):
     transaction_id: str
     status: str
     liquidated_at: datetime | None
-
-    class Config:
-        """
-        Pydantic model configuration.
-        """
-
-        orm_mode = True
 
 
 class MarginPositionGetAllResponse(GetAll[MarginPositionResponse]):

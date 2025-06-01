@@ -159,12 +159,18 @@ def test_update_margin_position_not_found(client, valid_update_data, mock_update
     mock_update_margin_position.assert_called_once()
 
 
-def test_update_margin_position_closed_position(client, valid_update_data, mock_update_margin_position):
+def test_update_margin_position_closed_position(
+    client, valid_update_data, mock_update_margin_position
+):
     """Test updating a closed margin position."""
     position_id = uuid.uuid4()
-    mock_update_margin_position.side_effect = ValueError("Cannot update a closed margin position")
+    mock_update_margin_position.side_effect = ValueError(
+        "Cannot update a closed margin position"
+    )
 
-    response = client.post(f"{MARGIN_POSITION_URL}/{position_id}", json=valid_update_data)
+    response = client.post(
+        f"{MARGIN_POSITION_URL}/{position_id}", json=valid_update_data
+    )
     
     assert response.status_code == 400
     assert "Cannot update a closed margin position" in response.json()["detail"]
@@ -222,8 +228,10 @@ def test_update_margin_position_negative_borrowed_amount(client):
 
     response = client.post(f"{MARGIN_POSITION_URL}/{position_id}", json=invalid_data)
     
-    # Should be handled by Pydantic validation
+    # Should be handled by Pydantic validation at the schema level
     assert response.status_code == 422
+    # Check that the error message mentions validation
+    assert "borrowed_amount" in str(response.json())
 
 
 def test_close_margin_position_success(client, mock_close_margin_position):

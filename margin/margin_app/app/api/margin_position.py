@@ -85,7 +85,9 @@ async def update_margin_position(
         if not updated_position:
             raise HTTPException(
                 status_code=404,
-                detail=f"Margin position with id {margin_position_id} not found"
+                detail=(
+                    f"Margin position with id {margin_position_id} not found"
+                )
             )
         
         return updated_position

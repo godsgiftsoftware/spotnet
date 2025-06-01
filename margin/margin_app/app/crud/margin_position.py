@@ -53,7 +53,7 @@ class MarginPositionCRUD(DBConnector):
         :param position_id: UUID of the position to update
         :param update_data: MarginPositionUpdate containing fields to update
         :return: Updated MarginPosition or None if not found
-        :raises ValueError: If position is closed or if multiplier is out of range
+        :raises ValueError: If position is closed
         """
         position = await self.get_object(position_id)
         if not position:
@@ -62,11 +62,6 @@ class MarginPositionCRUD(DBConnector):
         # Check if position is closed
         if position.status == MarginPositionStatus.CLOSED:
             raise ValueError("Cannot update a closed margin position")
-        
-        # Validate multiplier range if provided
-        if update_data.multiplier is not None:
-            if update_data.multiplier < 1 or update_data.multiplier > 20:
-                raise ValueError("Multiplier must be between 1 and 20")
         
         # Update only provided fields
         if update_data.borrowed_amount is not None:
