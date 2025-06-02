@@ -197,7 +197,6 @@ async def reset_password(data: AdminResetPassword, token: str):
     return JSONResponse(content={"message": "Password was changed"})
 
 
-
 @router.post(
     "/{admin_id}",
     response_model=AdminResponse,
