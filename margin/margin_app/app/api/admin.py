@@ -221,7 +221,7 @@ async def update_admin_name(
     Raises:
     - HTTPException: If admin is not found
     """
-    admin = await admin_crud.get_object(Admin, admin_id)
+    admin = await admin_crud.get_object(admin_id)
 
     if not admin:
         raise HTTPException(

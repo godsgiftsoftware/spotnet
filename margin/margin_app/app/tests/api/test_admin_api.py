@@ -79,9 +79,7 @@ async def test_get_all_admins(mock_mediator_call, mock_get_admin_by_email, clien
 
 
 @pytest.mark.asyncio
-@patch("app.crud.admin.admin_crud.get_by_email", new_callable=AsyncMock)
 @patch("app.crud.admin.admin_crud.get_object", new_callable=AsyncMock)
-@patch("app.crud.admin.admin_crud.write_to_db", new_callable=AsyncMock)
 async def test_update_admin_success(mock_write_to_db, mock_get_object, mock_get_by_email, client):
     """Test successful admin name update."""
     # Mock auth user lookup
@@ -118,7 +116,6 @@ async def test_update_admin_success(mock_write_to_db, mock_get_object, mock_get_
 
 
 @pytest.mark.asyncio
-@patch("app.crud.admin.admin_crud.get_by_email", new_callable=AsyncMock)
 @patch("app.crud.admin.admin_crud.get_object", new_callable=AsyncMock)
 async def test_update_admin_not_found(mock_get_object, mock_get_by_email, client):
     """Test update admin when admin not found."""
@@ -138,15 +135,12 @@ async def test_update_admin_not_found(mock_get_object, mock_get_by_email, client
 
 
 @pytest.mark.asyncio
-@patch("app.crud.admin.admin_crud.get_by_email", new_callable=AsyncMock)
 @patch("app.crud.admin.admin_crud.get_object", new_callable=AsyncMock)
-@patch("app.crud.admin.admin_crud.write_to_db", new_callable=AsyncMock)
 async def test_update_admin_empty_name(mock_write_to_db, mock_get_object, mock_get_email, client):
     """Test update admin with empty name."""
-    # Mock auth user lookup
+
     mock_get_email.return_value = test_admin_object
     
-    # Mock existing admin
     mock_admin = type('MockAdmin', (), {
         'id': test_admin_object['id'],
         'name': test_admin_object['name'],
@@ -162,5 +156,5 @@ async def test_update_admin_empty_name(mock_write_to_db, mock_get_object, mock_g
         headers={"Authorization": f"Bearer {token}"}
     )
 
-    # Should still work but name won't be updated since it's empty
+ 
     assert response.status_code == 200
