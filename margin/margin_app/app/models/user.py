@@ -19,12 +19,6 @@ class User(BaseModel):
     __tablename__ = "user"
 
     wallet_id: Mapped[str] = mapped_column(String, unique=True, nullable=False)
-    email: Mapped[Optional[str]] = mapped_column(
-        String(255),
-        unique=True,
-        nullable=True,
-        comment="The unique email address of the user."
-    )
     deposit: Mapped[list[Deposit]] = relationship("Deposit", back_populates="user", lazy="selectin")
     margin_position: Mapped[list[MarginPosition]] = relationship(
         "MarginPosition", back_populates="user"

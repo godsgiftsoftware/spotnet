@@ -1,7 +1,7 @@
 """
-Tests for Google OAuth authentication flow and token handling.
+Tests for Google OAuth authentication flow and token handling for Admin.
 Validates access token response, secure cookie storage for refresh tokens,
-and automatic user creation functionality.
+and automatic admin creation functionality.
 """
 import pytest
 from unittest.mock import patch, AsyncMock, MagicMock
@@ -19,16 +19,17 @@ async def test_google_auth_returns_access_token():
     This is the primary requirement of the task.
     """
     with patch("app.api.auth.google_auth") as mock_google_auth, patch(
-        "app.api.auth.user_crud"
-    ) as mock_user_crud:
+        "app.api.auth.admin_crud"
+    ) as mock_admin_crud:
 
         mock_user_data = MagicMock()
         mock_user_data.email = "test@example.com"
+        mock_user_data.name = "Test Admin"
         mock_google_auth.get_user = AsyncMock(return_value=mock_user_data)
 
-        mock_user = MagicMock()
-        mock_user.email = "test@example.com"
-        mock_user_crud.get_object_by_field = AsyncMock(return_value=mock_user)
+        mock_admin = MagicMock()
+        mock_admin.email = "test@example.com"
+        mock_admin_crud.get_by_email = AsyncMock(return_value=mock_admin)
 
         response = client.get("/api/auth/google?code=test_code")
 
@@ -48,16 +49,17 @@ async def test_google_auth_sets_refresh_token_cookie():
     Test that the Google auth endpoint sets a refresh token in a secure HTTP cookie.
     """
     with patch("app.api.auth.google_auth") as mock_google_auth, patch(
-        "app.api.auth.user_crud"
-    ) as mock_user_crud:
+        "app.api.auth.admin_crud"
+    ) as mock_admin_crud:
 
         mock_user_data = MagicMock()
         mock_user_data.email = "test@example.com"
+        mock_user_data.name = "Test Admin"
         mock_google_auth.get_user = AsyncMock(return_value=mock_user_data)
 
-        mock_user = MagicMock()
-        mock_user.email = "test@example.com"
-        mock_user_crud.get_object_by_field = AsyncMock(return_value=mock_user)
+        mock_admin = MagicMock()
+        mock_admin.email = "test@example.com"
+        mock_admin_crud.get_by_email = AsyncMock(return_value=mock_admin)
 
         response = client.get("/api/auth/google?code=test_code")
 
@@ -71,37 +73,35 @@ async def test_google_auth_sets_refresh_token_cookie():
 
 
 @pytest.mark.asyncio
-async def test_google_auth_with_nonexistent_user():
+async def test_google_auth_with_nonexistent_admin():
     """
-    Test that a new user is created if one doesn't exist.
+    Test that a new admin is created if one doesn't exist.
     """
     with patch("app.api.auth.google_auth") as mock_google_auth, patch(
-        "app.api.auth.user_crud"
-    ) as mock_user_crud:
+        "app.api.auth.admin_crud"
+    ) as mock_admin_crud:
 
         mock_user_data = MagicMock()
         mock_user_data.email = "new@example.com"
+        mock_user_data.name = "New Admin"
         mock_google_auth.get_user = AsyncMock(return_value=mock_user_data)
 
-        mock_user_crud.get_object_by_field = AsyncMock(return_value=None)
+        mock_admin_crud.get_by_email = AsyncMock(return_value=None)
 
-        created_user = MagicMock()
-        created_user.id = "some-uuid"
-        created_user.email = None
-        mock_user_crud.create_user = AsyncMock(return_value=created_user)
-
-        updated_user = MagicMock()
-        updated_user.email = "new@example.com"
-        mock_user_crud.update_user = AsyncMock(return_value=updated_user)
+        created_admin = MagicMock()
+        created_admin.id = "some-uuid"
+        created_admin.email = "new@example.com"
+        created_admin.name = "New Admin"
+        mock_admin_crud.create_admin = AsyncMock(return_value=created_admin)
 
         response = client.get("/api/auth/google?code=test_code")
 
         assert response.status_code == status.HTTP_200_OK
         assert "access_token" in response.json()
 
-        expected_wallet_id = f"{mock_user_data.email}_wallet"
-        mock_user_crud.create_user.assert_called_once_with(wallet_id=expected_wallet_id)
-
-        mock_user_crud.update_user.assert_called_once_with(
-            created_user.id, email=mock_user_data.email
+        mock_admin_crud.create_admin.assert_called_once_with(
+            email=mock_user_data.email, 
+            name=mock_user_data.name
         )
+
+        mock_admin_crud.get_by_email.assert_called_once_with(email=mock_user_data.email)

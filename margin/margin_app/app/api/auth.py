@@ -59,30 +59,26 @@ async def auth_google(code: str, request: Request, response: Response):
     :return: dict - A success message.
     """
     try:
-        user_data = await google_auth.get_user(code=code)
+        admin_data = await google_auth.get_user(code=code)
 
-        if not user_data:
+        if not admin_data:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Failed to authenticate user.",
             )
 
-        user = await user_crud.get_object_by_field(field="email", value=user_data.email)
-        if not user:
-            #temporary wallet_id
-            wallet_id= f"{user_data.email}_wallet" 
-            logger.info(f"Creating new user with wallet: {wallet_id}")
-            user = await user_crud.create_user(wallet_id=wallet_id)
-            #@reviewer: create_user takes only wallet so i just update seperately with email
-            user = await user_crud.update_user(user.id, email=user_data.email) 
+        admin = await admin_crud.get_by_email(email=admin_data.email)
+        if not admin:
+            logger.info(f"Creating new user with email: {admin_data.email}")
+            admin = await admin_crud.create_admin(email=admin_data.email, name=admin_data.name)
 
         access_token = create_access_token(
-            user_data.email,
+            admin_data.email,
             expires_delta=timedelta(minutes=settings.access_token_expire_minutes),
         )
 
         refresh_token = create_access_token(
-            user_data.email,
+            admin_data.email,
             expires_delta=timedelta(days=settings.refresh_token_expire_days),
         )
 
@@ -98,10 +94,10 @@ async def auth_google(code: str, request: Request, response: Response):
         return {"access_token": access_token, "token_type": "bearer"}
     
     except Exception as e:
-        logger.error(f"Failed to authenticate user: {str(e)}")
+        logger.error(f"Failed to authenticate admin: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Failed to authenticate user.",
+            detail="Failed to authenticate admin.",
         )
 
 
