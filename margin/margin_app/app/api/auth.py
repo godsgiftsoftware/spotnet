@@ -17,6 +17,7 @@ from app.services.auth.base import (
     decode_signup_token,
 )
 from app.crud.admin import admin_crud
+from app.crud.user import user_crud 
 from app.schemas.admin import AdminResetPassword
 from app.schemas.auth import SignupConfirmation
 from app.services.auth.security import (
@@ -53,7 +54,7 @@ async def logout_user() -> dict:
 
 
 @router.get("/google", status_code=status.HTTP_200_OK)
-async def auth_google(code: str, request: Request):
+async def auth_google(code: str, request: Request, response: Response):
     """
     Authenticate with Google OAuth, create an access token, and save it in the session.
 
@@ -64,25 +65,45 @@ async def auth_google(code: str, request: Request):
     :return: dict - A success message.
     """
     try:
-        user_data = await google_auth.get_user(code=code)
+        admin_data = await google_auth.get_user(code=code)
 
-        if not user_data:
+        if not admin_data:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Failed to authenticate user.",
             )
 
-        token = create_access_token(
-            user_data.email,
+        admin = await admin_crud.get_by_email(email=admin_data.email)
+        if not admin:
+            logger.info(f"Creating new user with email: {admin_data.email}")
+            admin = await admin_crud.create_admin(email=admin_data.email, name=admin_data.name)
+
+        access_token = create_access_token(
+            admin_data.email,
             expires_delta=timedelta(minutes=settings.access_token_expire_minutes),
         )
 
-        return {"access_token": token, "token_type": "bearer"}
+        refresh_token = create_access_token(
+            admin_data.email,
+            expires_delta=timedelta(days=settings.refresh_token_expire_days),
+        )
+
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            secure=True,
+            path="/",
+            max_age=settings.refresh_token_expire_days * 24 * 60 * 60
+        )
+
+        return {"access_token": access_token, "token_type": "bearer"}
+    
     except Exception as e:
-        logger.error(f"Failed to authenticate user: {str(e)}")
+        logger.error(f"Failed to authenticate admin: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Failed to authenticate user.",
+            detail="Failed to authenticate admin.",
         )
 
 
