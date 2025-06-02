@@ -211,7 +211,7 @@ async def signup_confirmation(
             httponly=True,
             secure=True,
             path="/",
-            max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
+            max_age=settings.refresh_token_expire_seconds,
         )
 
         return {"access_token": access_token, "token_type": "bearer"}
