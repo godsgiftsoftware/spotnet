@@ -22,7 +22,7 @@ class User(BaseModel):
     email: Mapped[Optional[str]] = mapped_column(
         String(255),
         unique=True,
-        nullable=False,
+        nullable=True,
         comment="The unique email address of the user."
     )
     deposit: Mapped[list[Deposit]] = relationship("Deposit", back_populates="user", lazy="selectin")

@@ -26,7 +26,7 @@ def upgrade() -> None:
         batch_op.add_column(sa.Column(
             'email', 
             sa.String(length=255), 
-            nullable=False, 
+            nullable=True, 
             comment='The unique email address of the user.'
         ))
         batch_op.create_unique_constraint(None, ['email'])
