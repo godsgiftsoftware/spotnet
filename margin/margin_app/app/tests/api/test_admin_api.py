@@ -141,10 +141,10 @@ async def test_update_admin_not_found(mock_get_object, mock_get_by_email, client
 @patch("app.crud.admin.admin_crud.get_by_email", new_callable=AsyncMock)
 @patch("app.crud.admin.admin_crud.get_object", new_callable=AsyncMock)
 @patch("app.crud.admin.admin_crud.write_to_db", new_callable=AsyncMock)
-async def test_update_admin_empty_name(mock_write_to_db, mock_get_object, mock_get_by_email, client):
+async def test_update_admin_empty_name(mock_write_to_db, mock_get_object, mock_get_email, client):
     """Test update admin with empty name."""
     # Mock auth user lookup
-    mock_get_by_email.return_value = test_admin_object
+    mock_get_email.return_value = test_admin_object
     
     # Mock existing admin
     mock_admin = type('MockAdmin', (), {
