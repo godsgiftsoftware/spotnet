@@ -78,23 +78,19 @@ async def test_get_all_admins(mock_mediator_call, mock_get_admin_by_email, clien
     mock_mediator_call.assert_called_once()
 
 
-
-@pytest.mark.asyncio
 @patch("app.crud.base.DBConnector.get_object", new_callable=AsyncMock)
 @patch("app.crud.base.DBConnector.write_to_db", new_callable=AsyncMock)
 def test_update_admin_name(
     mock_write_to_db,
     mock_get_object,
-    mock_get_admin_by_email,
     client,
 ):
     """
     Test updating an admin's name.
     """
-
-    # Mock existing admin
-    admin_id = test_admin_object["id"]
+    admin_id = str(test_admin_object["id"])  
     updated_name = "New Admin Name"
+
     mock_get_object.return_value = test_admin_object
     mock_write_to_db.return_value = {
         **test_admin_object,
@@ -104,7 +100,7 @@ def test_update_admin_name(
     token = create_access_token(test_admin_object["email"])
 
     response = client.post(
-        ADMIN_URL + f"{admin_id}",
+        f"/api/admin/{admin_id}",
         json={"name": updated_name},
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -112,7 +108,7 @@ def test_update_admin_name(
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
 
-    assert data["id"] == admin_id
+    assert data["id"] == test_admin_object["id"]
     assert data["name"] == updated_name
     assert data["email"] == test_admin_object["email"]
 
