@@ -168,8 +168,10 @@ async def signup_confirmation(
     Handle user registration confirmation with JWT token.
 
     Parameters:
-    - confirmation: SignupConfirmation - The confirmation request containing token, password, and name
-    - response: Response - The HTTP response object to set cookies
+    - confirmation: SignupConfirmation
+        The confirmation request containing token, password, and name
+    - response: Response
+        The HTTP response object to set cookies
 
     Returns:
     - dict: The access token and token type
