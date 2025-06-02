@@ -69,10 +69,12 @@ async def auth_google(code: str, request: Request, response: Response):
 
         user = await user_crud.get_object_by_field(field="email", value=user_data.email)
         if not user:
-            wallet_id= f"{user_data.email}_wallet" #temporary wallet_id @reviwer: see this and clarify how to handle wallet_id
+            #temporary wallet_id
+            wallet_id= f"{user_data.email}_wallet" 
             logger.info(f"Creating new user with wallet: {wallet_id}")
             user = await user_crud.create_user(wallet_id=wallet_id)
-            user = await user_crud.update_user(user.id, email=user_data.email) #@reviewer: create_user takes only wallet id not sure why so i just update seperately with email
+            #@reviewer: create_user takes only wallet so i just update seperately with email
+            user = await user_crud.update_user(user.id, email=user_data.email) 
 
         access_token = create_access_token(
             user_data.email,

@@ -1,3 +1,8 @@
+"""
+Tests for Google OAuth authentication flow and token handling.
+Validates access token response, secure cookie storage for refresh tokens,
+and automatic user creation functionality.
+"""
 import pytest
 from unittest.mock import patch, AsyncMock, MagicMock
 from fastapi import status
