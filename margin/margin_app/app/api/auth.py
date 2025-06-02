@@ -4,7 +4,7 @@ API endpoints for auth logic.
 
 from datetime import timedelta
 
-from fastapi import APIRouter, HTTPException, status, Request
+from fastapi import APIRouter, HTTPException, status, Request, Response
 from fastapi.responses import RedirectResponse, JSONResponse
 from loguru import logger
 from pydantic import EmailStr
@@ -12,6 +12,7 @@ from pydantic import EmailStr
 from app.core.config import settings
 from app.services.auth.base import google_auth, create_access_token, get_current_user
 from app.crud.admin import admin_crud
+from app.crud.user import user_crud 
 from app.schemas.admin import AdminResetPassword
 from app.services.auth.security import (
     get_password_hash,
@@ -47,7 +48,7 @@ async def logout_user() -> dict:
 
 
 @router.get("/google", status_code=status.HTTP_200_OK)
-async def auth_google(code: str, request: Request):
+async def auth_google(code: str, request: Request, response: Response):
     """
     Authenticate with Google OAuth, create an access token, and save it in the session.
 
@@ -66,12 +67,34 @@ async def auth_google(code: str, request: Request):
                 detail="Failed to authenticate user.",
             )
 
-        token = create_access_token(
+        user = await user_crud.get_object_by_field(field="email", value=user_data.email)
+        if not user:
+            wallet_id= f"{user_data.email}_wallet" #temporary wallet_id @reviwer: see this and clarify how to handle wallet_id
+            logger.info(f"Creating new user with wallet: {wallet_id}")
+            user = await user_crud.create_user(wallet_id=wallet_id)
+            user = await user_crud.update_user(user.id, email=user_data.email) #@reviewer: create_user takes only wallet id not sure why so i just update seperately with email
+
+        access_token = create_access_token(
             user_data.email,
             expires_delta=timedelta(minutes=settings.access_token_expire_minutes),
         )
 
-        return {"access_token": token, "token_type": "bearer"}
+        refresh_token = create_access_token(
+            user_data.email,
+            expires_delta=timedelta(days=settings.refresh_token_expire_days),
+        )
+
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            secure=True,
+            path="/",
+            max_age=settings.refresh_token_expire_days * 24 * 60 * 60
+        )
+
+        return {"access_token": access_token, "token_type": "bearer"}
+    
     except Exception as e:
         logger.error(f"Failed to authenticate user: {str(e)}")
         raise HTTPException(
