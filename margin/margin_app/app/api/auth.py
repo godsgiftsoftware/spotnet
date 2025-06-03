@@ -13,10 +13,16 @@ from app.core.config import settings
 from app.services.auth.base import (
     google_auth,
     create_access_token,
-    get_current_user
+    create_refresh_token,
+    get_current_user,
+    decode_signup_token,
     )
+
 from app.crud.admin import admin_crud
+from app.crud.user import user_crud
+from app.schemas.user import UserLogin
 from app.schemas.admin import AdminResetPassword
+from app.schemas.auth import SignupConfirmation
 from app.services.auth.security import (
     get_password_hash,
     verify_password,
@@ -51,7 +57,7 @@ async def logout_user() -> dict:
 
 
 @router.get("/google", status_code=status.HTTP_200_OK)
-async def auth_google(code: str, request: Request):
+async def auth_google(code: str, request: Request, response: Response):
     """
     Authenticate with Google OAuth, create an access token, and save it in the session.
 
@@ -62,26 +68,98 @@ async def auth_google(code: str, request: Request):
     :return: dict - A success message.
     """
     try:
-        user_data = await google_auth.get_user(code=code)
+        admin_data = await google_auth.get_user(code=code)
 
-        if not user_data:
+        if not admin_data:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Failed to authenticate user.",
             )
 
-        token = create_access_token(
-            user_data.email,
+        admin = await admin_crud.get_by_email(email=admin_data.email)
+        if not admin:
+            logger.info(f"Creating new user with email: {admin_data.email}")
+            admin = await admin_crud.create_admin(email=admin_data.email, name=admin_data.name)
+
+        access_token = create_access_token(
+            admin_data.email,
             expires_delta=timedelta(minutes=settings.access_token_expire_minutes),
         )
 
-        return {"access_token": token, "token_type": "bearer"}
+        refresh_token = create_access_token(
+            admin_data.email,
+            expires_delta=timedelta(days=settings.refresh_token_expire_days),
+        )
+
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            secure=True,
+            path="/",
+            max_age=settings.refresh_token_expire_days * 24 * 60 * 60
+        )
+
+        return {"access_token": access_token, "token_type": "bearer"}
+
     except Exception as e:
-        logger.error(f"Failed to authenticate user: {str(e)}")
+        logger.error(f"Failed to authenticate admin: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Failed to authenticate user.",
+            detail="Failed to authenticate admin.",
         )
+
+@router.post(
+    "/login",
+    status_code=status.HTTP_200_OK,
+    summary="user login",
+    description="login user with email and password",
+    )
+async def login_user(data: UserLogin, response: Response):
+    """
+    handles user login by email and password
+    Args:
+        data (UserLogin): A JSON object containing email and password
+    Raises:
+        HTTPException: If the user with the given email is not found.
+        HTTPException: if the password is incorrect
+    Returns:
+        JSONResponse: A response with the acess token
+    """
+
+    user = await user_crud.get_object_by_field("email", data.email)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User with this email not found.",
+        )
+
+    if not verify_password(data.password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+        )
+
+    access_token = create_access_token(
+            user.email,
+            expires_delta=timedelta(minutes=settings.access_token_expire_minutes),
+        )
+
+    refresh_token = create_refresh_token(
+            user.email,
+            expires_delta=timedelta(minutes=settings.refresh_token_expire_days),
+        )
+
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True,
+        path="/",
+    )
+
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @router.post(
@@ -155,3 +233,75 @@ async def reset_password(data: AdminResetPassword, token: str):
     admin.password = get_password_hash(data.new_password)
     await admin_crud.write_to_db(admin)
     return JSONResponse(content={"message": "Password was changed"})
+
+
+@router.post("/signup-confirmation", status_code=status.HTTP_200_OK)
+async def signup_confirmation(
+    confirmation: SignupConfirmation,
+    response: Response,
+):
+    """
+    Handle user registration confirmation with JWT token.
+
+    Parameters:
+    - confirmation: SignupConfirmation
+        The confirmation request containing token, password, and name
+    - response: Response
+        The HTTP response object to set cookies
+
+    Returns:
+    - dict: The access token and token type
+
+    Raises:
+    - HTTPException: If token is invalid, expired, or user already exists
+    """
+    try:
+        email = decode_signup_token(confirmation.token)
+
+        existing_user = await admin_crud.get_by_email(email)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User already exists",
+            )
+
+        # Create new user
+        hashed_password = get_password_hash(confirmation.password)
+        user = await admin_crud.create_admin(
+            email=email,
+            name=confirmation.name,
+            password=hashed_password,
+        )
+
+        access_token = create_access_token(
+            email,
+            expires_delta=timedelta(minutes=settings.access_token_expire_minutes),
+        )
+
+        refresh_token = create_access_token(
+            email,
+            expires_delta=timedelta(days=settings.refresh_token_expire_days),
+        )
+
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            secure=True,
+            path="/",
+            max_age=settings.refresh_token_expire_seconds,
+        )
+
+        return {"access_token": access_token, "token_type": "bearer"}
+
+    except Exception as e:
+        logger.error(f"Failed to confirm signup: {str(e)}")
+        if str(e) in ["Invalid token", "Token expired"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e),
+            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to confirm signup",
+        )

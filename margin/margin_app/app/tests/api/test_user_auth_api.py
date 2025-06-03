@@ -18,7 +18,7 @@ from app.services.auth.base import create_access_token, create_refresh_token
 
 app.state.settings = SimpleNamespace(
     access_token_expire_minutes=30,
-    refresh_token_expire_minutes=60,
+    refresh_token_expire_days=7,
 )
 
 client = TestClient(app)
@@ -60,7 +60,8 @@ def patch_tokens():
         "app.api.auth.create_access_token",
         return_value="fixed-access-token") as mock_access:
         with patch(
-            "app.api.auth.create_refresh_token", return_value="fixed-refresh-token") as mock_refresh:
+            "app.api.auth.create_refresh_token",
+            return_value="fixed-refresh-token") as mock_refresh:
             yield (mock_access, mock_refresh)
 
 def test_login_success_sets_cookie_and_returns_access_token(
@@ -91,7 +92,7 @@ def test_login_success_sets_cookie_and_returns_access_token(
     )
     create_refresh_mock.assert_called_once_with(
         test_user.email,
-        expires_delta=timedelta(minutes=app.state.settings.refresh_token_expire_minutes),
+        expires_delta=timedelta(minutes=app.state.settings.refresh_token_expire_days),
     )
 
 def test_login_user_not_found_returns_404(patch_get_user):

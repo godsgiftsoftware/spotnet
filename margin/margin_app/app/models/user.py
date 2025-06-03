@@ -4,6 +4,7 @@ User model definitions for the application.
 
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from typing import Optional
 
 from .base import BaseModel
 from .deposit import Deposit
