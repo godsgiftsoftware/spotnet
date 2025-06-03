@@ -16,6 +16,11 @@ from app.crud.user import user_crud
 from app.services.auth.security import verify_password
 from app.services.auth.base import create_access_token, create_refresh_token
 
+app.state.settings = SimpleNamespace(
+    access_token_expire_minutes=30,
+    refresh_token_expire_minutes=60,
+)
+
 client = TestClient(app)
 
 LOGIN_URL = "/api/auth/login"
@@ -41,8 +46,8 @@ def patch_verify_pwd():
     """
     patch verify_password() to return true
     """
-    with patch("app.services.auth.security.verify_password", new_callable=AsyncMock) as mock_verify:
-        mock_verify.return_value = True
+    with patch("app.api.auth.verify_password", return_value=True) as mock_verify:
+        # mock_verify.return_value = True
         yield mock_verify
 
 @pytest.fixture(autouse=True)
@@ -52,12 +57,10 @@ def patch_tokens():
     - easy to assert on the response JSON and cookie
     """
     with patch(
-        "app.services.auth.base.create_access_token",
-        new_callable=AsyncMock) as mock_access:
+        "app.api.auth.create_access_token",
+        return_value="fixed-access-token") as mock_access:
         with patch(
-            "app.services.auth.base.create_refresh_token", new_callable=AsyncMock) as mock_refresh:
-            mock_access.return_value = "fixed-access-token"
-            mock_refresh.return_value = "fixed-refresh-token"
+            "app.api.auth.create_refresh_token", return_value="fixed-refresh-token") as mock_refresh:
             yield (mock_access, mock_refresh)
 
 def test_login_success_sets_cookie_and_returns_access_token(
@@ -79,14 +82,14 @@ def test_login_success_sets_cookie_and_returns_access_token(
 
     patch_get_user.assert_awaited_once_with("email", test_user.email)
 
-    patch_verify_pwd.assert_awaited_once_with("correct-password", test_user.password)
+    patch_verify_pwd.assert_called_once_with("correct-password", test_user.password)
 
     create_access_mock, create_refresh_mock = patch_tokens
-    create_access_mock.assert_awaited_once_with(
+    create_access_mock.assert_called_once_with(
         test_user.email,
         expires_delta=timedelta(minutes=app.state.settings.access_token_expire_minutes),
     )
-    create_refresh_mock.assert_awaited_once_with(
+    create_refresh_mock.assert_called_once_with(
         test_user.email,
         expires_delta=timedelta(minutes=app.state.settings.refresh_token_expire_minutes),
     )
@@ -100,7 +103,7 @@ def test_login_user_not_found_returns_404(patch_get_user):
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "User with this email not found."}
-    patch_get_user.assert_awaited_once_with("email", "nouser@test.com")
+    patch_get_user.assert_awaited_once_with("email", "no_user@test.com")
 
 def test_login_invalid_password_returns_401(patch_verify_pwd):
     """ Test user login with invalid password"""
@@ -111,4 +114,4 @@ def test_login_invalid_password_returns_401(patch_verify_pwd):
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json() == {"detail": "Invalid credentials"}
-    patch_verify_pwd.assert_awaited_once_with("wrong-password", test_user.password)
+    patch_verify_pwd.assert_called_once_with("wrong-password", test_user.password)
