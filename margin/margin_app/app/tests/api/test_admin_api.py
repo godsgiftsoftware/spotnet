@@ -32,8 +32,10 @@ regular_admin_obj = {
     "is_super_admin": False,
 }
 
+
 def make_admin_obj(data):
     return SimpleNamespace(**data)
+
 
 @pytest.fixture
 def mock_admin_crud():
@@ -43,10 +45,17 @@ def mock_admin_crud():
     with patch("app.crud.admin.AdminCRUD", new_callable=AsyncMock) as mock:
         yield mock
 
+
 @pytest.fixture
 def patch_admin_get_by_email():
-    with patch("app.crud.admin.admin_crud.get_by_email", new_callable=AsyncMock) as mock:
+    """
+    Patch admin_crud.get_by_email for authentication middleware.
+    """
+    with patch(
+        "app.crud.admin.admin_crud.get_by_email", new_callable=AsyncMock
+    ) as mock:
         yield mock
+
 
 @pytest.fixture
 def mock_get_admin_by_email():
@@ -60,6 +69,7 @@ def mock_get_admin_by_email():
         mock.return_value = make_admin_obj(test_admin_object)
         yield mock
 
+
 @pytest.fixture
 def mock_get_all_admin():
     """
@@ -68,13 +78,13 @@ def mock_get_all_admin():
     with patch("app.crud.base.DBConnector.get_objects", new_callable=AsyncMock) as mock:
         yield mock
 
+
 @pytest.mark.asyncio
 @patch("app.api.common.GetAllMediator.__call__", new_callable=AsyncMock)
 async def test_get_all_admins(mock_mediator_call, mock_get_admin_by_email, client):
     """
-    Test successfully return all admins using the GetAllMediator.
+    Test successfully returning all admins using the GetAllMediator.
     """
-
     admins = [
         {
             "name": f"name{str(i)}",
@@ -95,51 +105,78 @@ async def test_get_all_admins(mock_mediator_call, mock_get_admin_by_email, clien
 
     mock_mediator_call.assert_called_once()
 
+
 @patch("app.api.admin.get_admin_user_from_state", new_callable=AsyncMock)
 @patch("app.crud.admin.admin_crud.create_admin", new_callable=AsyncMock)
-def test_superadmin_can_create_admin(mock_create_admin, mock_get_admin_user, patch_admin_get_by_email, client):
+def test_superadmin_can_create_admin(
+    mock_create_admin, mock_get_admin_user, patch_admin_get_by_email, client
+):
+    """
+    Test that a superadmin can successfully create a new admin.
+    """
     mock_get_admin_user.return_value = make_admin_obj(super_admin_obj)
-    mock_create_admin.return_value = make_admin_obj({
-        "id": str(uuid.uuid4()),
-        "email": "new@admin.com",
-        "name": "New Admin",
-        "is_super_admin": False,
-    })
+    mock_create_admin.return_value = make_admin_obj(
+        {
+            "id": str(uuid.uuid4()),
+            "email": "new@admin.com",
+            "name": "New Admin",
+            "is_super_admin": False,
+        }
+    )
     patch_admin_get_by_email.return_value = make_admin_obj(super_admin_obj)
     token = create_access_token(super_admin_obj["email"])
     response = client.post(
         ADMIN_URL + "add",
         json={"email": "new@admin.com", "name": "New Admin"},
-        headers={"Authorization": f"Bearer {token}"}
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 201
-    
+
+
 @patch("app.api.admin.get_admin_user_from_state", new_callable=AsyncMock)
-def test_regular_admin_cannot_create_admin(mock_get_admin_user, patch_admin_get_by_email, client):
+def test_regular_admin_cannot_create_admin(
+    mock_get_admin_user, patch_admin_get_by_email, client
+):
+    """
+    Test that a regular admin (non-superadmin) cannot create new admin users.
+    """
     mock_get_admin_user.return_value = make_admin_obj(regular_admin_obj)
     patch_admin_get_by_email.return_value = make_admin_obj(regular_admin_obj)
     token = create_access_token(regular_admin_obj["email"])
     response = client.post(
         ADMIN_URL + "add",
         json={"email": "new@admin.com", "name": "New Admin"},
-        headers={"Authorization": f"Bearer {token}"}
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 403
 
+
 @patch("app.api.admin.get_admin_user_from_state", new_callable=AsyncMock)
-def test_unauthenticated_user_cannot_create_admin(mock_get_admin_user, patch_admin_get_by_email, client):
+def test_unauthenticated_user_cannot_create_admin(
+    mock_get_admin_user, patch_admin_get_by_email, client
+):
+    """
+    Test that unauthenticated users cannot create admin users.
+    """
     mock_get_admin_user.return_value = None
     patch_admin_get_by_email.return_value = None
     token = create_access_token("nouser@example.com")
     response = client.post(
         ADMIN_URL + "add",
         json={"email": "new@admin.com", "name": "New Admin"},
-        headers={"Authorization": f"Bearer {token}"}
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 401
 
+
 @patch("app.api.admin.get_admin_user_from_state", new_callable=AsyncMock)
-def test_only_allowed_fields_processed(mock_get_admin_user, patch_admin_get_by_email, client):
+def test_only_allowed_fields_processed(
+    mock_get_admin_user, patch_admin_get_by_email, client
+):
+    """
+    Test that the endpoint only accepts allowed fields (email and name)
+    and rejects requests with additional fields.
+    """
     mock_get_admin_user.return_value = make_admin_obj(super_admin_obj)
     patch_admin_get_by_email.return_value = make_admin_obj(super_admin_obj)
     token = create_access_token(super_admin_obj["email"])
@@ -149,39 +186,51 @@ def test_only_allowed_fields_processed(mock_get_admin_user, patch_admin_get_by_e
             "email": "new@admin.com",
             "name": "New Admin",
             "role": "admin",
-            "permissions": ["read", "write"]
+            "permissions": ["read", "write"],
         },
-        headers={"Authorization": f"Bearer {token}"}
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 422
 
+
 @patch("app.api.admin.get_admin_user_from_state", new_callable=AsyncMock)
 def test_email_required(mock_get_admin_user, patch_admin_get_by_email, client):
+    """
+    Test that email field is required in the request.
+    """
     mock_get_admin_user.return_value = make_admin_obj(super_admin_obj)
     patch_admin_get_by_email.return_value = make_admin_obj(super_admin_obj)
     token = create_access_token(super_admin_obj["email"])
     response = client.post(
         ADMIN_URL + "add",
         json={"name": "New Admin"},
-        headers={"Authorization": f"Bearer {token}"}
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 422
 
+
 @patch("app.api.admin.get_admin_user_from_state", new_callable=AsyncMock)
 @patch("app.crud.admin.admin_crud.create_admin", new_callable=AsyncMock)
-def test_name_optional(mock_create_admin, mock_get_admin_user, patch_admin_get_by_email, client):
+def test_name_optional(
+    mock_create_admin, mock_get_admin_user, patch_admin_get_by_email, client
+):
+    """
+    Test that name field is optional in the request.
+    """
     mock_get_admin_user.return_value = make_admin_obj(super_admin_obj)
     patch_admin_get_by_email.return_value = make_admin_obj(super_admin_obj)
-    mock_create_admin.return_value = make_admin_obj({
-        "id": str(uuid.uuid4()),
-        "email": "new@admin.com",
-        "name": None,
-        "is_super_admin": False,
-    })
+    mock_create_admin.return_value = make_admin_obj(
+        {
+            "id": str(uuid.uuid4()),
+            "email": "new@admin.com",
+            "name": None,
+            "is_super_admin": False,
+        }
+    )
     token = create_access_token(super_admin_obj["email"])
     response = client.post(
         ADMIN_URL + "add",
         json={"email": "new@admin.com"},
-        headers={"Authorization": f"Bearer {token}"}
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 201

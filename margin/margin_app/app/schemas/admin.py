@@ -26,6 +26,7 @@ class AdminRequest(AdminBase):
     name: Optional[str] = None
 
     class Config:
+        "Only allow fields that are defined in the model"
         extra = "forbid"
 
 
