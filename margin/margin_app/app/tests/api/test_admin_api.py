@@ -34,6 +34,10 @@ regular_admin_obj = {
 
 
 def make_admin_obj(data):
+    """
+    Helper to convert a dictionary to an object with attribute access,
+    for use in mocks where the code expects attribute-style access.
+    """
     return SimpleNamespace(**data)
 
 
