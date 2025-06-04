@@ -13,7 +13,7 @@ class AdminBase(BaseModel):
     Admin base model
     """
 
-    name: str
+    name: Optional[str]
     email: EmailStr
 
 
@@ -22,7 +22,11 @@ class AdminRequest(AdminBase):
     Admin request model
     """
 
-    password: str
+    email: EmailStr
+    name: Optional[str] = None
+
+    class Config:
+        extra = "forbid"
 
 
 class AdminResetPassword(BaseModel):
