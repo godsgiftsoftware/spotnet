@@ -17,16 +17,7 @@ TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "mail", "email-templates"
 jinja_env = Environment(
     loader=FileSystemLoader(TEMPLATE_DIR),
     autoescape=select_autoescape(["mjml"])
-)
-
-def render_mjml_template(template_name: str, context: dict) -> str:
-        """
-        Render an MJML template with Jinja2 and convert it to HTML.
-        """
-        template = jinja_env.get_template(template_name)
-        mjml_content = template.render(context)
-        html_result = mjml2html(mjml_content)
-        return html_result['html']   
+) 
 
 class EmailService:
     """SendGrid email operations."""
@@ -36,6 +27,15 @@ class EmailService:
         self.sender = Email(
             email=settings.email_sender, name=settings.email_sender_name
         )
+
+    def render_mjml_template(self, template_name: str, context: dict) -> str:
+        """
+        Render an MJML template with Jinja2 and convert it to HTML.
+        """
+        template = jinja_env.get_template(template_name)
+        mjml_content = template.render(context)
+        html_result = mjml2html(mjml_content)
+        return html_result['html']      
  
     async def send_email(
         self,
