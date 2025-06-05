@@ -6,7 +6,7 @@ from sendgrid.helpers.mail import Mail, Email, To, Content, TemplateId
 from app.core.config import settings
 from app.services.auth.base import create_access_token, get_expire_time
 from mjml import mjml2html
-from jinja1 import Environment, FileSystemLoader, select_autoescape
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 import logging
 import os
 
@@ -19,6 +19,15 @@ jinja_env = Environment(
     autoescape=select_autoescape(["mjml"])
 )
 
+def render_mjml_template(template_name: str, context: dict) -> str:
+        """
+        Render an MJML template with Jinja2 and convert it to HTML.
+        """
+        template = jinja_env.get_template(template_name)
+        mjml_content = template.render(context)
+        html_result = mjml2html(mjml_content)
+        return html_result['html']   
+
 class EmailService:
     """SendGrid email operations."""
 
@@ -27,16 +36,7 @@ class EmailService:
         self.sender = Email(
             email=settings.email_sender, name=settings.email_sender_name
         )
-
-    def render_mjml_template(template_name: str, context: dict) -> str:
-        """
-        Render an MJML template with Jinja2 and convert it to HTML.
-        """
-        template = jinja_env.get_template(template_name)
-        mjml_content = template.render(context)
-        html_result = mjml2html(mjml_content)
-        return html_result['html']    
-
+ 
     async def send_email(
         self,
         to_email: str | list[str],
