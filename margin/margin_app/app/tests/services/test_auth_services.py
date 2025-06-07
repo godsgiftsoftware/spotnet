@@ -160,7 +160,7 @@ class TestAdminLogout:
     def test_successful_logout_clears_refresh_token_cookie_only(
         self, mock_get_admin_state, mock_get_by_email, client
     ):
-        """Test that admin logout only clears refresh token cookie (access token is not in cookies)."""
+        """Test that admin logout only clears refresh token cookie"""
         admin_email = "admin@test.com"
         mock_admin = make_admin_obj(
             {
