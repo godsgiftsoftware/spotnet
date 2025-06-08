@@ -27,7 +27,7 @@ class Admin(BaseModel):
     )
     name: Mapped[str] = mapped_column(
         String(255),
-        nullable=False,
+        nullable=True,
         comment="The full name of the admin."
     )
     is_super_admin: Mapped[bool] = mapped_column(

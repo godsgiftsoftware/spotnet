@@ -17,7 +17,10 @@ class Settings(BaseSettings):
     secret_key: str = "SECRET_KEY"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
+
+    refresh_token_expire_days: int = 7
     reset_password_expire_minutes: int = 15
+    refresh_token_expire_days: int = 7
     host: str = "localhost"
     forget_password_url: str = "/auth/reset_password"
 
@@ -54,6 +57,14 @@ class Settings(BaseSettings):
             database=self.db_name,
             port=self.db_port,
         )
+
+    @computed_field
+    @property
+    def refresh_token_expire_seconds(self) -> int:
+        """
+        Computed property to get refresh token expiration time in seconds
+        """
+        return self.refresh_token_expire_days * 24 * 60 * 60
 
 
 settings = Settings()
