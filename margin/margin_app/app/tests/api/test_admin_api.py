@@ -5,7 +5,8 @@ Unit tests for Admin API endpoints using function-based approach without async/a
 import uuid
 from unittest.mock import AsyncMock, patch
 from types import SimpleNamespace
-
+from uuid import UUID
+from app.crud.admin import admin_crud
 import pytest
 from fastapi import status
 from app.services.auth.base import create_access_token
@@ -110,18 +111,26 @@ async def test_get_all_admins(mock_mediator_call, mock_get_admin_by_email, clien
     mock_mediator_call.assert_called_once()
 
 
-@pytest.mark.asyncio
-@patch("app.crud.admin.admin_crud.get_object", new_callable=AsyncMock)
-async def test_update_admin_success(mock_get_object, client):
-    """Test successful admin name update."""
-    
-    mock_admin = type('MockAdmin', (), {
-        'id': test_admin_object['id'],
-        'name': test_admin_object['name'],
-        'email': test_admin_object['email']
-    })()
-    mock_get_object.return_value = mock_admin
 
+@pytest.fixture
+async def setup_test_admin():
+    """Create a test admin in the database and clean up afterward."""
+    admin_data = {
+        "id": UUID(test_admin_object["id"]),
+        "name": test_admin_object["name"],
+        "email": test_admin_object["email"],
+        "is_super_admin": test_admin_object["is_super_admin"],
+    }
+  
+    admin = await admin_crud.create_admin(admin_data)
+    yield admin
+  
+    await admin_crud.delete(admin.id)
+
+
+@pytest.mark.asyncio
+async def test_update_admin_success(setup_test_admin, client):
+    """Test successful admin name update."""
     token = create_access_token(test_admin_object["email"])
     response = client.post(
         f"{ADMIN_URL}{test_admin_object['id']}",
@@ -130,51 +139,59 @@ async def test_update_admin_success(mock_get_object, client):
     )
 
     assert response.status_code == 200
-    data = response.json()
-    assert data["name"] == "Updated Name"
-    assert data["id"] == test_admin_object['id']
-    assert data["email"] == test_admin_object['email']
-
+    assert response.json() == {
+        "id": test_admin_object["id"],
+        "name": "Updated Name",
+        "email": test_admin_object["email"]
+    }
 
 @pytest.mark.asyncio
 @patch("app.crud.admin.admin_crud.get_object", new_callable=AsyncMock)
-async def test_update_admin_not_found(mock_get_object, client):
+async def test_update_admin_not_found(mock_get_object, setup_test_admin, client):
     """Test update admin when admin not found."""
-
+    different_id = str(UUID(int=UUID(test_admin_object["id"]).int + 1))
     mock_get_object.return_value = None
 
     token = create_access_token(test_admin_object["email"])
     response = client.post(
-        f"{ADMIN_URL}{test_admin_object['id']}",
+        f"{ADMIN_URL}{different_id}",
         json={"name": "Updated Name"},
         headers={"Authorization": f"Bearer {token}"}
     )
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "Admin not found."
-
+    assert response.json() == {"detail": "Admin not found."}
+    mock_get_object.assert_called_once_with(UUID(different_id))
 
 @pytest.mark.asyncio
-@patch("app.crud.admin.admin_crud.get_object", new_callable=AsyncMock)
-async def test_update_admin_empty_name(mock_get_object, client):
+async def test_update_admin_empty_name(setup_test_admin, client):
     """Test update admin with empty name."""
-    
-    mock_admin = type('MockAdmin', (), {
-        'id': test_admin_object['id'],
-        'name': test_admin_object['name'],
-        'email': test_admin_object['email']
-    })()
-    mock_get_object.return_value = mock_admin
-
     token = create_access_token(test_admin_object["email"])
     response = client.post(
         f"{ADMIN_URL}{test_admin_object['id']}",
-        json={"name": ""},
+        json={"name": None},
         headers={"Authorization": f"Bearer {token}"}
     )
 
     assert response.status_code == 200
-    
+    assert response.json() == {
+        "id": test_admin_object["id"],
+        "name": None,
+        "email": test_admin_object["email"]
+    }
+
+@pytest.mark.asyncio
+async def test_update_admin_unauthenticated(client):
+    """Test update admin with invalid token."""
+    token = create_access_token("invalid@example.com")
+    response = client.post(
+        f"{ADMIN_URL}{test_admin_object['id']}",
+        json={"name": "Updated Name"},
+        headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "User not found"}
 
 @patch("app.api.admin.get_admin_user_from_state", new_callable=AsyncMock)
 @patch("app.crud.admin.admin_crud.create_admin", new_callable=AsyncMock)
