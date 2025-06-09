@@ -82,7 +82,8 @@ fn test_get_health_factor() {
     start_cheat_caller_address(suite.margin.contract_address, owner);
     let health_factor = suite.margin.get_health_factor(owner);
     stop_cheat_caller_address(suite.margin.contract_address);
-
+    println!("HF Act: {health_factor}");
+    println!("HF Calc: {}", calculate_health_factor(@suite, risk_factor));
     assert(
         health_factor == calculate_health_factor(@suite, risk_factor), 'Health factor incorrect',
     );

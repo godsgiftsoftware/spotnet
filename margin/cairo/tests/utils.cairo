@@ -214,5 +214,5 @@ pub fn store_data_for_health_factor(suite: @MarginTestSuite, risk_factor: u128) 
         position.into(),
     );
 
-    store_risk_factor((*suite.margin).contract_address, eth_contract_address, risk_factor);
+    store_risk_factor((*suite.margin).contract_address, strk_contract_address, risk_factor);
 }

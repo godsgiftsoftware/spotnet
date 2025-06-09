@@ -30,8 +30,8 @@ fn test_get_borrow_amount() {
     suite.pragma_mock.set_price_token(strk_contract_address, 5_0000000);
 
     state.oracle_address.write(suite.pragma.contract_address);
-    let amount = state.get_borrow_amount(eth_contract_address, strk_contract_address, 1, 50000);
-
-    assert(amount == 16000, 'Wrong borrow amount');
+    let amount = state.get_borrow_amount(eth_contract_address, strk_contract_address, 1000000000, 40);
+    println!("B am: {amount}");
+    assert(amount == 12000000000000, 'Wrong borrow amount');
 }
 

@@ -55,7 +55,7 @@ fn test_open_position_valid() {
         initial_token,
         debt_token: suite.token.contract_address,
         amount: 10000000000000,
-        multiplier: 50,
+        multiplier: 30,
     };
 
     // let pool_key = PoolKey {
