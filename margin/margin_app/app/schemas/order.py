@@ -47,6 +47,7 @@ class UserOrderUpdate(BaseModel):
     position: Optional[uuid.UUID] = None
 
     class Config:
+        " model configuration "
         json_encoders = {
             uuid.UUID: str,
             Decimal: str,
