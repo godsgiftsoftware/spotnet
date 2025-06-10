@@ -72,7 +72,7 @@ class UserOrderCRUD(DBConnector):
     
     async def update_order(
         self, 
-        order_id: uuid.UUID, 
+        order: UserOrder,
         user_id: Optional[uuid.UUID] = None,
         price: Optional[Decimal] = None,
         token: Optional[str] = None,
@@ -91,9 +91,6 @@ class UserOrderCRUD(DBConnector):
         Returns:
             UserOrder | None: The updated order object if found and updated, None otherwise
         """
-        order = await self.get_object(order_id)
-        if not order:
-            return None
 
         if user_id is not None:
             order.user_id = user_id

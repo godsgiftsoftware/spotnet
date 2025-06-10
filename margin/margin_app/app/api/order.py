@@ -146,6 +146,14 @@ async def update_order(
         HTTPException: If order not found or database error occurs
     """
     try:
+
+        existing_order = await order_crud.get_object(order_id)
+        if not existing_order:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Order not found"
+            )
+        
         updated_order = await order_crud.update_order(
             order_id=order_id,
             user_id=order_data.user_id,
@@ -154,12 +162,6 @@ async def update_order(
             position=order_data.position,
         )
         
-        if not updated_order:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Order not found"
-            )
-            
         return updated_order
         
     except SQLAlchemyError as e:
