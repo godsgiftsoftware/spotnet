@@ -49,11 +49,12 @@ def mock_update_order():
     with patch("app.api.order.order_crud.update_order") as mock:
         yield mock
 
+
 @pytest.fixture
 def mock_get_object():
     """Mock for order_crud.get_object method."""
     with patch("app.api.order.order_crud.get_object") as mock:
-        yield mock        
+        yield mock
 
 
 @pytest.fixture
@@ -218,14 +219,15 @@ def mock_get_order():
     with patch("app.api.order.order_crud.get_by_id") as mock:
         yield mock
 
+
 def test_update_order_success(client, mock_update_order, mock_get_object):
     """Test successful order update."""
     order_id = uuid.uuid4()
-    
+
     existing_order = create_mock_order()
     existing_order.id = order_id
     mock_get_object.return_value = existing_order
-    
+
     mock_updated_order = create_mock_order()
     mock_updated_order.id = order_id
     mock_updated_order.price = 150.50
@@ -240,7 +242,7 @@ def test_update_order_success(client, mock_update_order, mock_get_object):
     assert data["id"] == str(order_id)
     assert data["price"] == "150.5"
     assert data["token"] == "ETH"
-    
+
     mock_get_object.assert_called_once_with(order_id)
     mock_update_order.assert_called_once()
 
@@ -294,7 +296,7 @@ def test_update_order_with_all_fields(client, mock_update_order, mock_get_object
     assert data["price"] == "200.75"
     assert data["token"] == "BTC"
     assert data["position"] == str(new_position_id)
-    
+
     mock_get_object.assert_called_once_with(order_id)
     mock_update_order.assert_called_once()
 
@@ -322,7 +324,7 @@ def test_update_order_partial_update(client, mock_update_order, mock_get_object)
     data = response.json()
     assert data["price"] == "99.99"
     assert data["token"] == "USDC"
-    
+
     mock_get_object.assert_called_once_with(order_id)
     mock_update_order.assert_called_once()
 
@@ -355,11 +357,11 @@ def test_update_order_database_error(client, mock_get_object):
 def test_update_order_empty_body(client, mock_update_order, mock_get_object):
     """Test updating order with empty request body."""
     order_id = uuid.uuid4()
-    
+
     existing_order = create_mock_order()
     existing_order.id = order_id
     mock_get_object.return_value = existing_order
-    
+
     mock_updated_order = create_mock_order()
     mock_updated_order.id = order_id
     mock_update_order.return_value = mock_updated_order
@@ -367,7 +369,7 @@ def test_update_order_empty_body(client, mock_update_order, mock_get_object):
     response = client.post(f"/order/{order_id}", json={})
 
     assert response.status_code == status.HTTP_200_OK
-    
+
     mock_get_object.assert_called_once_with(order_id)
     mock_update_order.assert_called_once()
 
@@ -404,7 +406,7 @@ def test_update_order_zero_price(client, mock_update_order, mock_get_object):
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data["price"] == "0.0"
-    
+
     mock_get_object.assert_called_once_with(order_id)
     mock_update_order.assert_called_once()
 
@@ -430,7 +432,7 @@ def test_update_order_negative_price(client, mock_update_order, mock_get_object)
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data["price"] == "-10.5"
-    
+
     mock_get_object.assert_called_once_with(order_id)
     mock_update_order.assert_called_once()
 
@@ -457,7 +459,7 @@ def test_update_order_very_large_price(client, mock_update_order, mock_get_objec
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data["price"] == str(large_price)
-    
+
     mock_get_object.assert_called_once_with(order_id)
     mock_update_order.assert_called_once()
 
@@ -505,7 +507,7 @@ def test_update_order_empty_token(client, mock_update_order, mock_get_object):
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data["token"] == ""
-    
+
     mock_get_object.assert_called_once_with(order_id)
     mock_update_order.assert_called_once()
 
@@ -532,6 +534,6 @@ def test_update_order_long_token_name(client, mock_update_order, mock_get_object
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data["token"] == long_token
-    
+
     mock_get_object.assert_called_once_with(order_id)
     mock_update_order.assert_called_once()
