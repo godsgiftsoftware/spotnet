@@ -200,8 +200,15 @@ async def reset_password(data: AdminResetPassword, token: str):
     Returns:
         JSONResponse: A response indicating that the password was successfully changed.
     """
-
-    admin = await get_admin_user_from_state(token=token)
+    from app.services.auth.base import get_current_user
+    
+    try:
+        admin = await get_current_user(token)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token"
+        )
 
     if not verify_password(data.old_password, admin.password):
         raise HTTPException(
@@ -213,8 +220,7 @@ async def reset_password(data: AdminResetPassword, token: str):
     await admin_crud.write_to_db(admin)
     return JSONResponse(content={"message": "Password was changed"})
 
-
-@router.post(
+@router.put(
     "/{admin_id}",
     response_model=AdminResponse,
     status_code=status.HTTP_200_OK,
@@ -224,6 +230,7 @@ async def reset_password(data: AdminResetPassword, token: str):
 async def update_admin_name(
     admin_id: UUID,
     data: AdminUpdateRequest,
+    request: Request,
 ) -> AdminResponse:
     """
     Update an admin's name.
@@ -231,61 +238,31 @@ async def update_admin_name(
     Parameters:
     - admin_id: UUID of the admin to update
     - data: AdminUpdateRequest containing updated fields
+    - request: Request object containing authenticated admin user
 
     Returns:
     - AdminResponse: Updated admin data
 
     Raises:
-    - HTTPException: If admin is not found
+    - HTTPException: If admin is not found or user is not authenticated
     """
-    admin = await admin_crud.get_object(admin_id)
+    current_admin = await get_admin_user_from_state(request)
+    
+    if not current_admin:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required"
+        )
 
+    admin = await admin_crud.get_object(Admin, admin_id)
     if not admin:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Admin not found.",
+            detail="Admin not found."
         )
-
-    if data.name:
-        admin.name = data.name
-
-    updated_admin = await admin_crud.write_to_db(admin)
-
-    return AdminResponse(id=updated_admin.id, name=updated_admin.name, email=updated_admin.email)
-
-
-@router.post(
-    "/{admin_id}",
-    response_model=AdminResponse,
-    status_code=200,
-    summary="Update admin",
-    description="Update the name of an admin by ID",
-)
-async def update_admin_name(
-    admin_id: UUID,
-    data: AdminUpdateRequest,
-    current_admin: Admin = Depends(get_admin_user_from_state),
-) -> AdminResponse:
-    """
-    Update an admin's name.
-
-    Parameters:
-    - admin_id: UUID of the admin to update
-    - data: AdminUpdateRequest containing updated fields
-    - current_admin: Authenticated admin user
-
-    Returns:
-    - AdminResponse: Updated admin data
-
-    Raises:
-    - HTTPException: If admin is not found
-    """
-    admin = await admin_crud.get_object(admin_id)
-    if not admin:
-        raise HTTPException(status_code=404, detail="Admin not found.")
     
     if data.name is not None: 
         admin.name = data.name
 
-    updated_admin = await admin_crud.edit_to_db(admin)
+    updated_admin = await admin_crud.write_to_db(admin)
     return AdminResponse(id=updated_admin.id, name=updated_admin.name, email=updated_admin.email)
