@@ -5,7 +5,7 @@ API endpoints for admin management.
 from typing import List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status, Request, Depends
+from fastapi import APIRouter, HTTPException, Query, status, Request
 from loguru import logger
 from sqlalchemy.exc import IntegrityError
 
@@ -17,7 +17,7 @@ from app.schemas.admin import (
     AdminResponse,
     AdminResetPassword,
     AdminGetAllResponse,
-    AdminUpdateRequest,
+    AdminUpdateRequest
 )
 from app.services.auth.base import get_admin_user_from_state
 from app.services.auth.security import get_password_hash, verify_password
@@ -35,7 +35,10 @@ router = APIRouter(prefix="")
     summary="add a new admin",
     description="Adds a new admin in the application",
 )
-async def add_admin(data: AdminRequest, request: Request) -> AdminResponse:
+async def add_admin(
+    data: AdminRequest,
+    request: Request
+) -> AdminResponse:
     """
     Add a new admin with the provided admin data.
 
@@ -54,7 +57,8 @@ async def add_admin(data: AdminRequest, request: Request) -> AdminResponse:
 
     if not current_admin:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required"
         )
 
     if not current_admin.is_super_admin:
@@ -63,12 +67,15 @@ async def add_admin(data: AdminRequest, request: Request) -> AdminResponse:
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only superadmins can create new admin users",
+            detail="Only superadmins can create new admin users"
         )
 
     try:
         new_admin = await admin_crud.create_admin(
-            email=data.email, name=data.name, password=None, is_super_admin=False
+            email=data.email,
+            name=data.name,
+            password=None,
+            is_super_admin=False
         )
 
     except IntegrityError as e:
