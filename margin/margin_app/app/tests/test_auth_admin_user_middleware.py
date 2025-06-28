@@ -1,6 +1,7 @@
 """
 Test suite for admin authentication middleware.
-Covers all scenarios: missing/invalid/expired/malformed tokens, user not found, DB errors, case-insensitive Bearer, unguarded routes, and all admin paths.
+Covers all scenarios: missing/invalid/expired/malformed tokens, user not found, DB errors,
+case-insensitive Bearer, unguarded routes, and all admin paths.
 """
 import pytest
 from unittest.mock import AsyncMock, patch
@@ -68,7 +69,9 @@ def test_auth_admin_user_middleware_guarded_url_valid_authorization_header(
     from app.services.auth.base import create_access_token
     test_email = "test@admin.com"
     test_token = create_access_token(test_email)
-    mock_admin = SimpleNamespace(id="1", email=test_email, name="Test Admin", is_super_admin=True)
+    mock_admin = SimpleNamespace(
+    id="1", email=test_email, name="Test Admin", is_super_admin=True
+)
     mock_get_by_email.return_value = mock_admin
 
     response = client.get(
