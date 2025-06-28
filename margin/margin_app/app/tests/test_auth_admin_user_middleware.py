@@ -72,7 +72,7 @@ def test_auth_admin_user_middleware_guarded_url_valid_authorization_header(
     test_token = create_access_token(test_admin_object.get("email"))
     mock_get_admin_by_email.return_value = make_admin_obj(test_admin_object)
     mock_get_all_admin.return_value = [make_admin_obj(test_admin_object)]
-    
+
     response = client.get(
         API_ADMIN_URL + ADMIN_ROUTE_TO_TEST,
         headers={"Authorization": f"Bearer {test_token}"},
@@ -87,7 +87,7 @@ def test_auth_admin_user_middleware_user_not_found(mock_get_admin_by_email, clie
     """
     test_token = create_access_token("nonexistent@test.com")
     mock_get_admin_by_email.return_value = None
-    
+
     response = client.get(
         API_ADMIN_URL + ADMIN_ROUTE_TO_TEST,
         headers={"Authorization": f"Bearer {test_token}"},
@@ -103,12 +103,14 @@ def test_auth_admin_user_middleware_expired_token(client):
     import jwt
     from datetime import datetime, timedelta, timezone
     from app.core.config import settings
-    
+
     # Create an expired token
     expire = datetime.now(timezone.utc) - timedelta(minutes=1)  # Expired 1 minute ago
     to_encode = {"sub": test_admin_object.get("email"), "exp": expire}
-    expired_token = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
-    
+    expired_token = jwt.encode(
+        to_encode, settings.secret_key, algorithm=settings.algorithm
+    )
+
     response = client.get(
         API_ADMIN_URL + ADMIN_ROUTE_TO_TEST,
         headers={"Authorization": f"Bearer {expired_token}"},
@@ -122,7 +124,7 @@ def test_auth_admin_user_middleware_malformed_token(client):
     Test that middleware returns authentication error when token is malformed.
     """
     malformed_token = "invalid.jwt.token"
-    
+
     response = client.get(
         API_ADMIN_URL + ADMIN_ROUTE_TO_TEST,
         headers={"Authorization": f"Bearer {malformed_token}"},
@@ -138,7 +140,7 @@ def test_auth_admin_user_middleware_database_error(mock_get_admin_by_email, clie
     """
     test_token = create_access_token(test_admin_object.get("email"))
     mock_get_admin_by_email.side_effect = Exception("Database connection error")
-    
+
     response = client.get(
         API_ADMIN_URL + ADMIN_ROUTE_TO_TEST,
         headers={"Authorization": f"Bearer {test_token}"},
@@ -171,12 +173,12 @@ def test_auth_admin_user_middleware_sets_request_state(
     mock_admin = make_admin_obj(test_admin_object)
     mock_get_admin_by_email.return_value = mock_admin
     mock_get_all_admin.return_value = [mock_admin]
-    
+
     response = client.get(
         API_ADMIN_URL + ADMIN_ROUTE_TO_TEST,
         headers={"Authorization": f"Bearer {test_token}"},
     )
-    
+
     # The middleware should successfully authenticate and the endpoint should work
     assert response.status_code == status.HTTP_200_OK
     # Verify that get_by_email was called with the correct email
@@ -190,7 +192,7 @@ def test_auth_admin_user_middleware_multiple_paths_covered(client):
     # Test that /api/admin paths are protected
     response = client.get("/api/admin/all")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
-    
+
     # Test that non-admin paths are not affected
     response = client.get("/health")
     assert response.status_code == status.HTTP_200_OK

@@ -5,7 +5,7 @@ API endpoints for admin management.
 from typing import List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status, Request,Depends
+from fastapi import APIRouter, HTTPException, Query, status, Request, Depends
 from loguru import logger
 from sqlalchemy.exc import IntegrityError
 
@@ -17,7 +17,7 @@ from app.schemas.admin import (
     AdminResponse,
     AdminResetPassword,
     AdminGetAllResponse,
-    AdminUpdateRequest
+    AdminUpdateRequest,
 )
 from app.services.auth.base import get_admin_user_from_state
 from app.services.auth.security import get_password_hash, verify_password
@@ -35,10 +35,7 @@ router = APIRouter(prefix="")
     summary="add a new admin",
     description="Adds a new admin in the application",
 )
-async def add_admin(
-    data: AdminRequest,
-    request: Request
-) -> AdminResponse:
+async def add_admin(data: AdminRequest, request: Request) -> AdminResponse:
     """
     Add a new admin with the provided admin data.
 
@@ -57,23 +54,21 @@ async def add_admin(
 
     if not current_admin:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required"
         )
-    
+
     if not current_admin.is_super_admin:
-        logger.warning(f"Non-superadmin user {current_admin.email} attempted to create admin")
+        logger.warning(
+            f"Non-superadmin user {current_admin.email} attempted to create admin"
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only superadmins can create new admin users"
+            detail="Only superadmins can create new admin users",
         )
-    
+
     try:
         new_admin = await admin_crud.create_admin(
-            email=data.email,
-            name=data.name,
-            password=None,
-            is_super_admin=False
+            email=data.email, name=data.name, password=None, is_super_admin=False
         )
 
     except IntegrityError as e:
@@ -200,15 +195,8 @@ async def reset_password(data: AdminResetPassword, token: str):
     Returns:
         JSONResponse: A response indicating that the password was successfully changed.
     """
-    from app.services.auth.base import get_current_user
-    
-    try:
-        admin = await get_current_user(token)
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token"
-        )
+
+    admin = await get_admin_user_from_state(token=token)
 
     if not verify_password(data.old_password, admin.password):
         raise HTTPException(
@@ -219,6 +207,7 @@ async def reset_password(data: AdminResetPassword, token: str):
     admin.password = get_password_hash(data.new_password)
     await admin_crud.write_to_db(admin)
     return JSONResponse(content={"message": "Password was changed"})
+
 
 @router.put(
     "/{admin_id}",
@@ -247,22 +236,22 @@ async def update_admin_name(
     - HTTPException: If admin is not found or user is not authenticated
     """
     current_admin = await get_admin_user_from_state(request)
-    
+
     if not current_admin:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required"
         )
 
     admin = await admin_crud.get_object(Admin, admin_id)
     if not admin:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Admin not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail="Admin not found."
         )
-    
-    if data.name is not None: 
+
+    if data.name is not None:
         admin.name = data.name
 
     updated_admin = await admin_crud.write_to_db(admin)
-    return AdminResponse(id=updated_admin.id, name=updated_admin.name, email=updated_admin.email)
+    return AdminResponse(
+        id=updated_admin.id, name=updated_admin.name, email=updated_admin.email
+    )
