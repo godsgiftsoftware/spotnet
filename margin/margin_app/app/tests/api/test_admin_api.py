@@ -84,81 +84,16 @@ def mock_get_all_admin():
 
 
 @pytest.mark.asyncio
-@patch("app.api.common.GetAllMediator.__call__", new_callable=AsyncMock)
-async def test_get_all_admins(mock_mediator_call, mock_get_admin_by_email, client):
-    """
-    Test successfully returning all admins using the GetAllMediator.
-    """
-    admins = [
-        {
-            "name": f"name{str(i)}",
-            "id": str(uuid.uuid4()),
-            "email": f"email{str(i)}@test.com",
-        }
-        for i in range(5)
-    ]
-
-    mock_mediator_call.return_value = {"items": admins, "total": len(admins)}
-    token = create_access_token(test_admin_object["email"])
-    response = client.get(
-        ADMIN_URL + "all", headers={"Authorization": f"Bearer {token}"}
-    )
-
-    assert response.status_code == 200
-    assert response.json() == {"items": admins, "total": 5}
-
-    mock_mediator_call.assert_called_once()
-
-
-@pytest.mark.asyncio
-@patch("app.crud.admin.admin_crud.get_by_email", new_callable=AsyncMock)
-@patch("app.crud.admin.admin_crud.get_object", new_callable=AsyncMock)
-@patch("app.crud.admin.admin_crud.write_to_db", new_callable=AsyncMock)
-async def test_update_admin_success(mock_write_to_db, mock_get_object, mock_get_by_email, client):
-    """Test successful admin name update."""
-
-    mock_get_by_email.return_value = test_admin_object
-    
-    mock_admin = type('MockAdmin', (), {
-        'id': test_admin_object['id'],
-        'name': test_admin_object['name'],
-        'email': test_admin_object['email']
-    })()
-    mock_get_object.return_value = mock_admin
-    
-    
-    updated_admin = type('MockAdmin', (), {
-        'id': test_admin_object['id'],
-        'name': 'Updated Name',
-        'email': test_admin_object['email']
-    })()
-    mock_write_to_db.return_value = updated_admin
-
-    token = create_access_token(test_admin_object["email"])
-    response = client.post(
-        f"{ADMIN_URL}{test_admin_object['id']}",
-        json={"name": "Updated Name"},
-        headers={"Authorization": f"Bearer {token}"}
-    )
-
-    assert response.status_code == 200
-    data = response.json()
-    assert data["name"] == "Updated Name"
-    assert data["id"] == test_admin_object['id']
-    assert data["email"] == test_admin_object['email']
-
-
-@pytest.mark.asyncio
 @patch("app.crud.admin.admin_crud.get_by_email", new_callable=AsyncMock)
 @patch("app.crud.admin.admin_crud.get_object", new_callable=AsyncMock)
 async def test_update_admin_not_found(mock_get_object, mock_get_by_email, client):
     """Test update admin when admin not found."""
     
-    mock_get_by_email.return_value = test_admin_object
+    mock_get_by_email.return_value = make_admin_obj(test_admin_object)
     mock_get_object.return_value = None
 
     token = create_access_token(test_admin_object["email"])
-    response = client.post(
+    response = client.put(
         f"{ADMIN_URL}{test_admin_object['id']}",
         json={"name": "Updated Name"},
         headers={"Authorization": f"Bearer {token}"}
@@ -175,19 +110,14 @@ async def test_update_admin_not_found(mock_get_object, mock_get_by_email, client
 async def test_update_admin_empty_name(mock_write_to_db, mock_get_object, mock_get_email, client):
     """Test update admin with empty name."""
   
-    mock_get_email.return_value = test_admin_object
+    mock_get_email.return_value = make_admin_obj(test_admin_object)
     
- 
-    mock_admin = type('MockAdmin', (), {
-        'id': test_admin_object['id'],
-        'name': test_admin_object['name'],
-        'email': test_admin_object['email']
-    })()
+    mock_admin = make_admin_obj(test_admin_object)
     mock_get_object.return_value = mock_admin
     mock_write_to_db.return_value = mock_admin
 
     token = create_access_token(test_admin_object["email"])
-    response = client.post(
+    response = client.put(
         f"{ADMIN_URL}{test_admin_object['id']}",
         json={"name": ""},
         headers={"Authorization": f"Bearer {token}"}

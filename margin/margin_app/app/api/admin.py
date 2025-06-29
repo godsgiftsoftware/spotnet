@@ -5,7 +5,7 @@ API endpoints for admin management.
 from typing import List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status, Request,Depends
+from fastapi import APIRouter, HTTPException, Query, status, Request
 from loguru import logger
 from sqlalchemy.exc import IntegrityError
 
@@ -60,14 +60,16 @@ async def add_admin(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required"
         )
-    
+
     if not current_admin.is_super_admin:
-        logger.warning(f"Non-superadmin user {current_admin.email} attempted to create admin")
+        logger.warning(
+            f"Non-superadmin user {current_admin.email} attempted to create admin"
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only superadmins can create new admin users"
         )
-    
+
     try:
         new_admin = await admin_crud.create_admin(
             email=data.email,
@@ -214,7 +216,7 @@ async def reset_password(data: AdminResetPassword, token: str):
     return JSONResponse(content={"message": "Password was changed"})
 
 
-@router.post(
+@router.put(
     "/{admin_id}",
     response_model=AdminResponse,
     status_code=status.HTTP_200_OK,
@@ -224,6 +226,7 @@ async def reset_password(data: AdminResetPassword, token: str):
 async def update_admin_name(
     admin_id: UUID,
     data: AdminUpdateRequest,
+    request: Request,
 ) -> AdminResponse:
     """
     Update an admin's name.
@@ -231,61 +234,31 @@ async def update_admin_name(
     Parameters:
     - admin_id: UUID of the admin to update
     - data: AdminUpdateRequest containing updated fields
+    - request: Request object containing authenticated admin user
 
     Returns:
     - AdminResponse: Updated admin data
 
     Raises:
-    - HTTPException: If admin is not found
+    - HTTPException: If admin is not found or user is not authenticated
     """
-    admin = await admin_crud.get_object(admin_id)
+    current_admin = await get_admin_user_from_state(request)
 
-    if not admin:
+    if not current_admin:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Admin not found.",
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required"
         )
 
-    if data.name:
+    admin = await admin_crud.get_object(Admin, admin_id)
+    if not admin:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Admin not found."
+        )
+
+    if data.name is not None:
         admin.name = data.name
 
     updated_admin = await admin_crud.write_to_db(admin)
-
-    return AdminResponse(id=updated_admin.id, name=updated_admin.name, email=updated_admin.email)
-
-
-@router.post(
-    "/{admin_id}",
-    response_model=AdminResponse,
-    status_code=200,
-    summary="Update admin",
-    description="Update the name of an admin by ID",
-)
-async def update_admin_name(
-    admin_id: UUID,
-    data: AdminUpdateRequest,
-    current_admin: Admin = Depends(get_admin_user_from_state),
-) -> AdminResponse:
-    """
-    Update an admin's name.
-
-    Parameters:
-    - admin_id: UUID of the admin to update
-    - data: AdminUpdateRequest containing updated fields
-    - current_admin: Authenticated admin user
-
-    Returns:
-    - AdminResponse: Updated admin data
-
-    Raises:
-    - HTTPException: If admin is not found
-    """
-    admin = await admin_crud.get_object(admin_id)
-    if not admin:
-        raise HTTPException(status_code=404, detail="Admin not found.")
-    
-    if data.name is not None: 
-        admin.name = data.name
-
-    updated_admin = await admin_crud.edit_to_db(admin)
-    return AdminResponse(id=updated_admin.id, name=updated_admin.name, email=updated_admin.email)
+    return AdminResponse(
+        id=updated_admin.id, name=updated_admin.name, email=updated_admin.email
+    )
