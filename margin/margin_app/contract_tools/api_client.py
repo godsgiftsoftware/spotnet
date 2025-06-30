@@ -1,3 +1,7 @@
+"""
+This module contains mixins for admin-related contract interactions.
+"""
+
 import httpx
 import logging
 from typing import Any, Dict, Optional
