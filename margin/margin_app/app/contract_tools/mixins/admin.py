@@ -6,11 +6,8 @@ import logging
 from decimal import Decimal
 from typing import Dict, Optional
 
-from margin_app.app.utils.token_params import TokenParams 
-from margin_app.app.core.config import AVNU_PRICE_URL
-
-
-from ..api_client import BaseAPIClient
+from app.contract_tools.constants import AVNU_PRICE_URL, TokenParams
+from app.contract_tools.api_client import BaseAPIClient
 
 logger = logging.getLogger(__name__)
 
