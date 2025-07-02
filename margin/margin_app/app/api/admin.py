@@ -2,7 +2,7 @@
 API endpoints for admin management.
 """
 
-from typing import List, Optional
+from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, status, Request
@@ -11,7 +11,6 @@ from sqlalchemy.exc import IntegrityError
 
 from app.api.common import GetAllMediator
 from app.crud.admin import admin_crud
-from app.models.admin import Admin
 from app.schemas.admin import (
     AdminRequest,
     AdminResponse,
@@ -109,8 +108,8 @@ async def get_all_admin(
         limit=limit,
         offset=offset,
     )
-    mediator = await mediator()
-    return mediator
+    result = await mediator()
+    return result
 
 
 @router.get(
@@ -132,7 +131,7 @@ async def get_admin(
     Returns:
     - AdminResponse: The admin object
     """
-    admin = await admin_crud.get_object(Admin, admin_id)
+    admin = await admin_crud.get_object(admin_id)
 
     if not admin:
         logger.error(f"Admin with id: '{admin_id}' not found")
@@ -249,7 +248,7 @@ async def update_admin_name(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required"
         )
 
-    admin = await admin_crud.get_object(Admin, admin_id)
+    admin = await admin_crud.get_object(admin_id)
     if not admin:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Admin not found."
