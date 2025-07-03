@@ -28,6 +28,7 @@ app.state.settings = SimpleNamespace(
 )
 
 LOGIN_URL = "/api/auth/login"
+SIGNUP_URL = "/api/auth/signup"
 
 test_user = SimpleNamespace(
     id=str(uuid.uuid4()),
@@ -131,3 +132,65 @@ def test_login_invalid_password_returns_401(patch_verify_pwd):
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json() == {"detail": "Invalid credentials"}
     patch_verify_pwd.assert_called_once_with("wrong-password", test_user.password)
+
+
+# @pytest.fixture
+# def patch_admin_get_by_email():
+#     with patch("app.crud.admin.admin_crud.get_by_email", new_callable=AsyncMock) as mock:
+#         yield mock
+
+# @pytest.fixture
+# def patch_send_confirmation_email():
+#     with patch("app.services.emails.email_service.send_confirmation_email", 
+#                new_callable=AsyncMock) as mock:
+#         yield mock
+
+# def test_signup_new_user_sends_confirmation_email(
+#     patch_admin_get_by_email, patch_send_confirmation_email
+# ):
+#     patch_admin_get_by_email.return_value = None  # simulate user doesn't exist
+#     patch_send_confirmation_email.return_value = True
+
+#     payload = {"email": "new_user@example.com"}
+#     response = client.post(SIGNUP_URL, json=payload)
+
+#     assert response.status_code == 200
+#     assert response.json() == {"message": "Confirmation email sent successfully"}
+
+#     patch_admin_get_by_email.assert_awaited_once_with("new_user@example.com")
+#     patch_send_confirmation_email.assert_awaited_once()
+
+# def test_signup_existing_user_returns_400(patch_admin_get_by_email):
+#     patch_admin_get_by_email.return_value = {"email": "existing@example.com"}
+
+#     payload = {"email": "existing@example.com"}
+#     response = client.post(SIGNUP_URL, json=payload)
+
+#     assert response.status_code == 400
+#     assert response.json() == {"detail": "Email already exists"}
+
+# def test_signup_email_send_fails_returns_500(
+#     patch_admin_get_by_email, patch_send_confirmation_email
+# ):
+#     patch_admin_get_by_email.return_value = None
+#     patch_send_confirmation_email.return_value = False  # simulate failure
+
+#     payload = {"email": "user@example.com"}
+#     response = client.post(SIGNUP_URL, json=payload)
+
+#     assert response.status_code == 500
+#     assert response.json() == {"detail": "Failed to send confirmation email"}
+
+# def test_signup_generates_correct_confirmation_link(patch_admin_get_by_email):
+#     patch_admin_get_by_email.return_value = None
+
+#     with patch("app.services.emails.email_service.send_confirmation_email", 
+#                new_callable=AsyncMock) as mock_send:
+#         mock_send.return_value = True
+#         payload = {"email": "checklink@example.com"}
+#         response = client.post(SIGNUP_URL, json=payload)
+
+#         assert response.status_code == 200
+#         args, kwargs = mock_send.call_args
+#         assert kwargs["to_email"] == "checklink@example.com"
+#         assert "signup-confirmation?token=" in kwargs["link"]
