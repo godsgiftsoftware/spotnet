@@ -386,9 +386,10 @@ def test_reset_password_extra_fields_ignored(
     mock_get_current_user.return_value = mock_admin
     mock_write_to_db.return_value = mock_admin
 
-    response = client.post(
-        f"{ADMIN_URL}reset_password/valid_token?new_password=newSecurePassword123!&extra_field=ignored&another=param"
-    )
+    base_url = f"{ADMIN_URL}reset_password/valid_token"
+    query_params = "?new_password=newSecurePassword123!&extra_field=ignored&another=param"
+    
+    response = client.post(f"{base_url}{query_params}")
 
     assert response.status_code == 200
     assert response.json()["message"] == "Password was successfully reset"
