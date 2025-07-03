@@ -141,10 +141,13 @@ def test_login_invalid_password_returns_401(patch_verify_pwd):
 
 # @pytest.fixture
 # def patch_send_confirmation_email():
-#     with patch("app.services.emails.email_service.send_confirmation_email", new_callable=AsyncMock) as mock:
+#     with patch("app.services.emails.email_service.send_confirmation_email", 
+#                new_callable=AsyncMock) as mock:
 #         yield mock
 
-# def test_signup_new_user_sends_confirmation_email(patch_admin_get_by_email, patch_send_confirmation_email):
+# def test_signup_new_user_sends_confirmation_email(
+#     patch_admin_get_by_email, patch_send_confirmation_email
+# ):
 #     patch_admin_get_by_email.return_value = None  # simulate user doesn't exist
 #     patch_send_confirmation_email.return_value = True
 
@@ -166,7 +169,9 @@ def test_login_invalid_password_returns_401(patch_verify_pwd):
 #     assert response.status_code == 400
 #     assert response.json() == {"detail": "Email already exists"}
 
-# def test_signup_email_send_fails_returns_500(patch_admin_get_by_email, patch_send_confirmation_email):
+# def test_signup_email_send_fails_returns_500(
+#     patch_admin_get_by_email, patch_send_confirmation_email
+# ):
 #     patch_admin_get_by_email.return_value = None
 #     patch_send_confirmation_email.return_value = False  # simulate failure
 
@@ -179,7 +184,8 @@ def test_login_invalid_password_returns_401(patch_verify_pwd):
 # def test_signup_generates_correct_confirmation_link(patch_admin_get_by_email):
 #     patch_admin_get_by_email.return_value = None
 
-#     with patch("app.services.emails.email_service.send_confirmation_email", new_callable=AsyncMock) as mock_send:
+#     with patch("app.services.emails.email_service.send_confirmation_email", 
+#                new_callable=AsyncMock) as mock_send:
 #         mock_send.return_value = True
 #         payload = {"email": "checklink@example.com"}
 #         response = client.post(SIGNUP_URL, json=payload)

@@ -16,6 +16,9 @@ class Token(BaseModel):
 
 
 class SignupRequest(BaseModel):
+    """
+    Signup request model
+    """
     email: EmailStr
 
 class SignupConfirmation(BaseSchema):

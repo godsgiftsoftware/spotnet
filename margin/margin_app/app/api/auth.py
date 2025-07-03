@@ -427,7 +427,6 @@ async def signup_confirmation(
     description="Initiates the signup process by sending a confirmation email",
 )
 async def signup_user(payload: SignupRequest):
-    email = payload.email
     """
     Handles user signup by sending a confirmation email with a token.
 
@@ -440,6 +439,7 @@ async def signup_user(payload: SignupRequest):
     Returns:
         JSONResponse: A response indicating that the confirmation email was sent.
     """
+    email = payload.email
     try:
         # Check if the email already exists in the database
         existing_user = await admin_crud.get_by_email(email)
@@ -454,7 +454,10 @@ async def signup_user(payload: SignupRequest):
 
         # Send confirmation email
         confirmation_link = f"{settings.app_base_url}/signup-confirmation?token={token}"
-        email_sent = await email_service.send_confirmation_email(to_email=email, link=confirmation_link)
+        email_sent = await email_service.send_confirmation_email(
+            to_email=email,
+            link=confirmation_link,
+        )
 
         if not email_sent:
             raise HTTPException(
