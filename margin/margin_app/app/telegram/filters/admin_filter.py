@@ -1,17 +1,26 @@
-"""Admin filter to verify if a user is listed in the configured admin IDs."""
+"""Custom filter to check if a Telegram user is an admin based on config."""
 
-from app.telegram.config import BotConfig  
+from aiogram.filters import BaseFilter
+from aiogram.types import Message
+
+from app.telegram.config import BotConfig
 
 config = BotConfig()
 
-def is_admin(user_id: int) -> bool:
-    """
-    Checks if a given user ID is in the list of admin IDs from config.
 
-    Args:
-        user_id (int): The Telegram user ID to check.
+class AdminFilter(BaseFilter):
+    """Filter that checks if the user is an admin based on their Telegram ID."""
 
-    Returns:
-        bool: True if the user is an admin, False otherwise.
-    """
-    return user_id in config.ADMINS
+    is_admin: bool = True
+
+    async def __call__(self, message: Message) -> bool:
+        """
+        Checks if the user is in the list of configured admin IDs.
+
+        Args:
+            message (Message): The incoming Telegram message.
+
+        Returns:
+            bool: True if the user is an admin and `is_admin` is True; False otherwise.
+        """
+        return (message.from_user.id in config.ADMINS) == self.is_admin

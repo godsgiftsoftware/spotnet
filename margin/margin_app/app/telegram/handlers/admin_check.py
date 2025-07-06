@@ -1,19 +1,16 @@
-"""Handler for the /admin_check Telegram command to verify admin access."""
+"""Handler for the /admin_check Telegram command using AdminFilter."""
 
 from aiogram import Router, types
 from aiogram.filters import Command
-from app.telegram.filters.admin_filter import is_admin
+
+from app.telegram.filters.admin_filter import AdminFilter
 
 router = Router()
+router.message.filter(AdminFilter())
 
 @router.message(Command("admin_check"))
 async def admin_check_handler(message: types.Message):
     """
-    Responds to the /admin_check command.
-
-    Sends a confirmation if the user is an admin, otherwise denies access.
+    Responds with an admin verification message if user passes the AdminFilter.
     """
-    if is_admin(message.from_user.id):
-        await message.answer("✅ You are an admin!")
-    else:
-        await message.answer("❌ You aren’t an admin!")
+    await message.answer("✅ You are an admin!")
