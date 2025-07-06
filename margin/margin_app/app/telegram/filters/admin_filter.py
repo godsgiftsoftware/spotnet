@@ -1,3 +1,5 @@
+"""Admin filter to verify if a user is listed in the configured admin IDs."""
+
 from app.telegram.config import BotConfig  
 
 config = BotConfig()
