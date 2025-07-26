@@ -51,7 +51,7 @@ services:
 
   frontend:
     build:
-      context: ../frontend
+      context: ../spotnet/frontend
       dockerfile: Dockerfile.dev
     container_name: frontend_dev
     volumes:
